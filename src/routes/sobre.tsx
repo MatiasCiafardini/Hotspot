@@ -1,0 +1,48 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { motion } from "framer-motion";
+import { Sticker } from "@/components/Sticker";
+
+export const Route = createFileRoute("/sobre")({
+  head: () => ({
+    meta: [
+      { title: "El Spot — SMASH" },
+      { name: "description", content: "La historia de SMASH: carne smasheada, sabor de barrio." },
+      { property: "og:title", content: "El Spot — SMASH" },
+    ],
+  }),
+  component: AboutPage,
+});
+
+function AboutPage() {
+  return (
+    <section className="mx-auto max-w-4xl px-4 py-16 md:px-6">
+      <div className="flex flex-wrap gap-2 mb-6">
+        <Sticker color="red">El spot</Sticker>
+        <Sticker color="cyan" rotate={4}>Desde 2019</Sticker>
+      </div>
+      <motion.h1
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="font-display text-5xl md:text-7xl mb-8"
+      >
+        Nacimos en una <span className="bg-mustard px-2 -rotate-1 inline-block">esquina</span>.
+      </motion.h1>
+      <div className="prose prose-lg max-w-none space-y-4 font-body text-foreground">
+        <p>
+          SMASH empezó como un foodtruck en una esquina ruidosa, con una plancha,
+          una bolsa de carne picada y un letrero pintado a spray. Sin
+          inversionistas, sin marketing. Solo carne smasheada y mucha bronca por
+          hacer las cosas bien.
+        </p>
+        <p>
+          Hoy somos local fijo, pero la onda no cambió: pan artesanal del barrio,
+          carne fresca todos los días y salsas que no encontrás en ningún otro
+          lado. Si te gusta lo simple bien hecho, este es tu lugar.
+        </p>
+        <p className="font-display text-3xl text-primary spray-text">
+          Sin vueltas. Sin fancy. Solo sabor.
+        </p>
+      </div>
+    </section>
+  );
+}
