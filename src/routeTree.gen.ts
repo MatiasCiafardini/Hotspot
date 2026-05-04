@@ -10,7 +10,10 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SobreRouteImport } from './routes/sobre'
+import { Route as RegisterRouteImport } from './routes/register'
+import { Route as MiCuentaRouteImport } from './routes/mi-cuenta'
 import { Route as MenuRouteImport } from './routes/menu'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as ContactoRouteImport } from './routes/contacto'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -21,15 +24,35 @@ import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminHistorialRouteImport } from './routes/admin.historial'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminConfiguracionRouteImport } from './routes/admin.configuracion'
+import { Route as ApiStoreAuthRegisterRouteImport } from './routes/api.store.auth.register'
+import { Route as ApiStoreAuthMeRouteImport } from './routes/api.store.auth.me'
+import { Route as ApiStoreAuthLogoutRouteImport } from './routes/api.store.auth.logout'
+import { Route as ApiStoreAuthLoginRouteImport } from './routes/api.store.auth.login'
+import { Route as ApiStoreAuthGoogleRouteImport } from './routes/api.store.auth.google'
 
 const SobreRoute = SobreRouteImport.update({
   id: '/sobre',
   path: '/sobre',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MiCuentaRoute = MiCuentaRouteImport.update({
+  id: '/mi-cuenta',
+  path: '/mi-cuenta',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MenuRoute = MenuRouteImport.update({
   id: '/menu',
   path: '/menu',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactoRoute = ContactoRouteImport.update({
@@ -82,13 +105,41 @@ const AdminConfiguracionRoute = AdminConfiguracionRouteImport.update({
   path: '/configuracion',
   getParentRoute: () => AdminRoute,
 } as any)
+const ApiStoreAuthRegisterRoute = ApiStoreAuthRegisterRouteImport.update({
+  id: '/api/store/auth/register',
+  path: '/api/store/auth/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStoreAuthMeRoute = ApiStoreAuthMeRouteImport.update({
+  id: '/api/store/auth/me',
+  path: '/api/store/auth/me',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStoreAuthLogoutRoute = ApiStoreAuthLogoutRouteImport.update({
+  id: '/api/store/auth/logout',
+  path: '/api/store/auth/logout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStoreAuthLoginRoute = ApiStoreAuthLoginRouteImport.update({
+  id: '/api/store/auth/login',
+  path: '/api/store/auth/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStoreAuthGoogleRoute = ApiStoreAuthGoogleRouteImport.update({
+  id: '/api/store/auth/google',
+  path: '/api/store/auth/google',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/checkout': typeof CheckoutRoute
   '/contacto': typeof ContactoRoute
+  '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
+  '/mi-cuenta': typeof MiCuentaRoute
+  '/register': typeof RegisterRoute
   '/sobre': typeof SobreRoute
   '/admin/configuracion': typeof AdminConfiguracionRoute
   '/admin/dashboard': typeof AdminDashboardRoute
@@ -96,13 +147,21 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/productos': typeof AdminProductosRoute
   '/admin/stock': typeof AdminStockRoute
+  '/api/store/auth/google': typeof ApiStoreAuthGoogleRoute
+  '/api/store/auth/login': typeof ApiStoreAuthLoginRoute
+  '/api/store/auth/logout': typeof ApiStoreAuthLogoutRoute
+  '/api/store/auth/me': typeof ApiStoreAuthMeRoute
+  '/api/store/auth/register': typeof ApiStoreAuthRegisterRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/checkout': typeof CheckoutRoute
   '/contacto': typeof ContactoRoute
+  '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
+  '/mi-cuenta': typeof MiCuentaRoute
+  '/register': typeof RegisterRoute
   '/sobre': typeof SobreRoute
   '/admin/configuracion': typeof AdminConfiguracionRoute
   '/admin/dashboard': typeof AdminDashboardRoute
@@ -110,6 +169,11 @@ export interface FileRoutesByTo {
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/productos': typeof AdminProductosRoute
   '/admin/stock': typeof AdminStockRoute
+  '/api/store/auth/google': typeof ApiStoreAuthGoogleRoute
+  '/api/store/auth/login': typeof ApiStoreAuthLoginRoute
+  '/api/store/auth/logout': typeof ApiStoreAuthLogoutRoute
+  '/api/store/auth/me': typeof ApiStoreAuthMeRoute
+  '/api/store/auth/register': typeof ApiStoreAuthRegisterRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -117,7 +181,10 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/checkout': typeof CheckoutRoute
   '/contacto': typeof ContactoRoute
+  '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
+  '/mi-cuenta': typeof MiCuentaRoute
+  '/register': typeof RegisterRoute
   '/sobre': typeof SobreRoute
   '/admin/configuracion': typeof AdminConfiguracionRoute
   '/admin/dashboard': typeof AdminDashboardRoute
@@ -125,6 +192,11 @@ export interface FileRoutesById {
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/productos': typeof AdminProductosRoute
   '/admin/stock': typeof AdminStockRoute
+  '/api/store/auth/google': typeof ApiStoreAuthGoogleRoute
+  '/api/store/auth/login': typeof ApiStoreAuthLoginRoute
+  '/api/store/auth/logout': typeof ApiStoreAuthLogoutRoute
+  '/api/store/auth/me': typeof ApiStoreAuthMeRoute
+  '/api/store/auth/register': typeof ApiStoreAuthRegisterRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -133,7 +205,10 @@ export interface FileRouteTypes {
     | '/admin'
     | '/checkout'
     | '/contacto'
+    | '/login'
     | '/menu'
+    | '/mi-cuenta'
+    | '/register'
     | '/sobre'
     | '/admin/configuracion'
     | '/admin/dashboard'
@@ -141,13 +216,21 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/productos'
     | '/admin/stock'
+    | '/api/store/auth/google'
+    | '/api/store/auth/login'
+    | '/api/store/auth/logout'
+    | '/api/store/auth/me'
+    | '/api/store/auth/register'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin'
     | '/checkout'
     | '/contacto'
+    | '/login'
     | '/menu'
+    | '/mi-cuenta'
+    | '/register'
     | '/sobre'
     | '/admin/configuracion'
     | '/admin/dashboard'
@@ -155,13 +238,21 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/productos'
     | '/admin/stock'
+    | '/api/store/auth/google'
+    | '/api/store/auth/login'
+    | '/api/store/auth/logout'
+    | '/api/store/auth/me'
+    | '/api/store/auth/register'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/checkout'
     | '/contacto'
+    | '/login'
     | '/menu'
+    | '/mi-cuenta'
+    | '/register'
     | '/sobre'
     | '/admin/configuracion'
     | '/admin/dashboard'
@@ -169,6 +260,11 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/productos'
     | '/admin/stock'
+    | '/api/store/auth/google'
+    | '/api/store/auth/login'
+    | '/api/store/auth/logout'
+    | '/api/store/auth/me'
+    | '/api/store/auth/register'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -176,8 +272,16 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   CheckoutRoute: typeof CheckoutRoute
   ContactoRoute: typeof ContactoRoute
+  LoginRoute: typeof LoginRoute
   MenuRoute: typeof MenuRoute
+  MiCuentaRoute: typeof MiCuentaRoute
+  RegisterRoute: typeof RegisterRoute
   SobreRoute: typeof SobreRoute
+  ApiStoreAuthGoogleRoute: typeof ApiStoreAuthGoogleRoute
+  ApiStoreAuthLoginRoute: typeof ApiStoreAuthLoginRoute
+  ApiStoreAuthLogoutRoute: typeof ApiStoreAuthLogoutRoute
+  ApiStoreAuthMeRoute: typeof ApiStoreAuthMeRoute
+  ApiStoreAuthRegisterRoute: typeof ApiStoreAuthRegisterRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -189,11 +293,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SobreRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mi-cuenta': {
+      id: '/mi-cuenta'
+      path: '/mi-cuenta'
+      fullPath: '/mi-cuenta'
+      preLoaderRoute: typeof MiCuentaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/menu': {
       id: '/menu'
       path: '/menu'
       fullPath: '/menu'
       preLoaderRoute: typeof MenuRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contacto': {
@@ -266,6 +391,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminConfiguracionRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/api/store/auth/register': {
+      id: '/api/store/auth/register'
+      path: '/api/store/auth/register'
+      fullPath: '/api/store/auth/register'
+      preLoaderRoute: typeof ApiStoreAuthRegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/store/auth/me': {
+      id: '/api/store/auth/me'
+      path: '/api/store/auth/me'
+      fullPath: '/api/store/auth/me'
+      preLoaderRoute: typeof ApiStoreAuthMeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/store/auth/logout': {
+      id: '/api/store/auth/logout'
+      path: '/api/store/auth/logout'
+      fullPath: '/api/store/auth/logout'
+      preLoaderRoute: typeof ApiStoreAuthLogoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/store/auth/login': {
+      id: '/api/store/auth/login'
+      path: '/api/store/auth/login'
+      fullPath: '/api/store/auth/login'
+      preLoaderRoute: typeof ApiStoreAuthLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/store/auth/google': {
+      id: '/api/store/auth/google'
+      path: '/api/store/auth/google'
+      fullPath: '/api/store/auth/google'
+      preLoaderRoute: typeof ApiStoreAuthGoogleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -294,8 +454,16 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   CheckoutRoute: CheckoutRoute,
   ContactoRoute: ContactoRoute,
+  LoginRoute: LoginRoute,
   MenuRoute: MenuRoute,
+  MiCuentaRoute: MiCuentaRoute,
+  RegisterRoute: RegisterRoute,
   SobreRoute: SobreRoute,
+  ApiStoreAuthGoogleRoute: ApiStoreAuthGoogleRoute,
+  ApiStoreAuthLoginRoute: ApiStoreAuthLoginRoute,
+  ApiStoreAuthLogoutRoute: ApiStoreAuthLogoutRoute,
+  ApiStoreAuthMeRoute: ApiStoreAuthMeRoute,
+  ApiStoreAuthRegisterRoute: ApiStoreAuthRegisterRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

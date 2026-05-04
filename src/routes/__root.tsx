@@ -6,6 +6,7 @@ import { Footer } from "@/components/Footer";
 import { CartDrawer } from "@/components/CartDrawer";
 import { Toaster } from "@/components/ui/sonner";
 import { RouteTransitionProvider } from "@/components/RouteTransitionProvider";
+import { CustomerAuthProvider } from "@/lib/customer-auth";
 import favicon from "@/assets/logo_hotspot.png?url";
 
 function NotFoundComponent() {
@@ -28,10 +29,10 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "SMASH — Street Food Burgers" },
-      { name: "description", content: "Hamburguesas urbanas, sabor de barrio. Pedí online y retirá o te lo llevamos." },
+      { title: "Hotspot - Burgers y street food" },
+      { name: "description", content: "Hamburguesas urbanas, sabor de barrio. Pedi online y retira o te lo llevamos." },
       { name: "theme-color", content: "#f28c28" },
-      { property: "og:title", content: "SMASH — Street Food Burgers" },
+      { property: "og:title", content: "Hotspot - Burgers y street food" },
       { property: "og:description", content: "Hamburguesas urbanas, sabor de barrio." },
       { property: "og:type", content: "website" },
     ],
@@ -70,17 +71,19 @@ function RootComponent() {
 
   return (
     <CartProvider>
-      <RouteTransitionProvider>
-        <div className="flex min-h-screen flex-col">
-          {!isAdmin && <Header />}
-          <main className={!isAdmin ? "flex-1 pt-[73px] md:pt-[81px]" : "flex-1"}>
-            <Outlet />
-          </main>
-          {!isAdmin && <Footer />}
-          {!isAdmin && <CartDrawer />}
-          <Toaster />
-        </div>
-      </RouteTransitionProvider>
+      <CustomerAuthProvider>
+        <RouteTransitionProvider>
+          <div className="flex min-h-screen flex-col">
+            {!isAdmin && <Header />}
+            <main className={!isAdmin ? "flex-1 pt-[73px] md:pt-[81px]" : "flex-1"}>
+              <Outlet />
+            </main>
+            {!isAdmin && <Footer />}
+            {!isAdmin && <CartDrawer />}
+            <Toaster />
+          </div>
+        </RouteTransitionProvider>
+      </CustomerAuthProvider>
     </CartProvider>
   );
 }

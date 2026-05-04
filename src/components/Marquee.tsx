@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 
-const ITEMS = ["SMASH NIGHT", "DELIVERY 24/7", "2X1 EN SHAKES", "NUEVO: FUEGO CALLEJERO", "STREET FOOD CRU"];
+const ITEMS = ["HOTSPOT NIGHT", "DELIVERY 24/7", "2X1 EN SHAKES", "NUEVO: FUEGO CALLEJERO", "NUESTRAS BURGERS"];
 
 export function Marquee() {
   const loop = [...ITEMS, ...ITEMS, ...ITEMS];

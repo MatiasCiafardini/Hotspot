@@ -5,9 +5,9 @@ import { Sticker } from "@/components/Sticker";
 export const Route = createFileRoute("/sobre")({
   head: () => ({
     meta: [
-      { title: "El Spot — SMASH" },
-      { name: "description", content: "La historia de SMASH: carne smasheada, sabor de barrio." },
-      { property: "og:title", content: "El Spot — SMASH" },
+      { title: "El Spot - Hotspot" },
+      { name: "description", content: "La historia de Hotspot: hamburguesas, sabor de barrio." },
+      { property: "og:title", content: "El Spot - Hotspot" },
     ],
   }),
   component: AboutPage,
@@ -29,9 +29,9 @@ function AboutPage() {
       </motion.h1>
       <div className="prose prose-lg max-w-none space-y-4 font-body text-foreground">
         <p>
-          SMASH empezó como un foodtruck en una esquina ruidosa, con una plancha,
+          Hotspot empezó como un foodtruck en una esquina ruidosa, con una plancha,
           una bolsa de carne picada y un letrero pintado a spray. Sin
-          inversionistas, sin marketing. Solo carne smasheada y mucha bronca por
+          inversionistas, sin marketing. Solo burgers hechas al momento y mucha bronca por
           hacer las cosas bien.
         </p>
         <p>

@@ -8,9 +8,9 @@ import { ProductCard } from "@/components/ProductCard";
 export const Route = createFileRoute("/menu")({
   head: () => ({
     meta: [
-      { title: "Menú — SMASH" },
-      { name: "description", content: "Mirá toda la carta de SMASH: hamburguesas, sides y bebidas." },
-      { property: "og:title", content: "Menú — SMASH" },
+      { title: "Menu - Hotspot" },
+      { name: "description", content: "Mira toda la carta de Hotspot: hamburguesas, sides y bebidas." },
+      { property: "og:title", content: "Menu - Hotspot" },
     ],
   }),
   component: MenuPage,

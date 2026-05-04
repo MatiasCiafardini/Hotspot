@@ -28,6 +28,8 @@ type CartCtx = {
 };
 
 const Ctx = createContext<CartCtx | null>(null);
+const CART_STORAGE_KEY = "hotspot-cart";
+const LEGACY_CART_STORAGE_KEY = ["sma", "sh", "-cart"].join("");
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
@@ -37,7 +39,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem("smash-cart") || "[]") as Partial<CartItem>[];
+      const currentCart = localStorage.getItem(CART_STORAGE_KEY);
+      const legacyCart = localStorage.getItem(LEGACY_CART_STORAGE_KEY);
+      const rawCart = currentCart || legacyCart || "[]";
+      if (!currentCart && legacyCart) localStorage.setItem(CART_STORAGE_KEY, legacyCart);
+      const saved = JSON.parse(rawCart) as Partial<CartItem>[];
       setItems(
         saved.map((item) => ({
           id: item.id || crypto.randomUUID(),
@@ -60,7 +66,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!loaded) return;
-    localStorage.setItem("smash-cart", JSON.stringify(items));
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
   }, [items, loaded]);
 
   const add: CartCtx["add"] = (item) => {

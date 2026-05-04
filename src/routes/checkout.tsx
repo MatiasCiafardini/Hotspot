@@ -8,13 +8,15 @@ import { SmashButton } from "@/components/SmashButton";
 import { Sticker } from "@/components/Sticker";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { GoogleLoginButton } from "@/components/GoogleLoginButton";
 import { useRouteTransition } from "@/components/RouteTransitionProvider";
 import { DEFAULT_SETTINGS, formatMoney, type StoreSettings } from "@/lib/admin";
+import { useCustomerAuth } from "@/lib/customer-auth";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
     meta: [
-      { title: "Checkout — SMASH" },
+      { title: "Checkout - Hotspot" },
       { name: "description", content: "Confirmá tu pedido en 3 pasos." },
     ],
   }),
@@ -41,6 +43,7 @@ function buildOrderItem(orderId: string, item: CheckoutItem, includeProductId: b
 
 function CheckoutPage() {
   const { items, total, clear } = useCart();
+  const { customer, isLoading: customerLoading } = useCustomerAuth();
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
@@ -99,6 +102,10 @@ function CheckoutPage() {
   };
 
   const submit = async () => {
+    if (!customer) {
+      toast.error("Para confirmar tu pedido necesitas iniciar sesion.");
+      return;
+    }
     if (transferSeconds <= 0) {
       toast.error("El tiempo para transferir vencio. Volve al paso anterior y generamos una nueva ventana.");
       return;
@@ -107,6 +114,7 @@ function CheckoutPage() {
     const { data, error } = await (supabase as any)
       .from("orders")
       .insert({
+        customer_id: customer.id,
         customer_name: form.name,
         customer_phone: form.phone,
         customer_address: form.method === "delivery" ? form.address : null,
@@ -152,6 +160,49 @@ function CheckoutPage() {
         <h1 className="font-display text-4xl mb-2">Tu carrito está vacío</h1>
         <p className="text-muted-foreground mb-6">Agregá algo del menú primero.</p>
         <SmashButton onClick={() => navigateWithTransition("/menu")}>Ir al menú</SmashButton>
+      </section>
+    );
+  }
+
+  if (customerLoading) {
+    return (
+      <section className="mx-auto max-w-2xl px-4 py-20 text-center md:px-6">
+        <h1 className="font-display text-4xl mb-2">Verificando tu cuenta</h1>
+        <p className="text-muted-foreground">Un segundo, estamos preparando el checkout.</p>
+      </section>
+    );
+  }
+
+  if (!customer) {
+    return (
+      <section className="mx-auto max-w-2xl px-4 py-20 text-center md:px-6">
+        <Sticker color="ink">Cuenta requerida</Sticker>
+        <div className="mt-4 sticker-lg bg-card p-6 md:p-8">
+          <h1 className="font-display text-4xl mb-3">Para confirmar tu pedido necesitás iniciar sesión.</h1>
+          <p className="text-muted-foreground mb-6">
+            Podés seguir navegando y tu carrito queda guardado. Iniciá sesión o creá una cuenta para terminar el pedido.
+          </p>
+          <GoogleLoginButton redirectTo="/checkout" className="mx-auto mb-4 max-w-sm" />
+          <div className="mb-4 flex items-center gap-3 text-xs uppercase text-muted-foreground">
+            <span className="h-px flex-1 bg-ink/20" />
+            <span>o usa email</span>
+            <span className="h-px flex-1 bg-ink/20" />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <a
+              href="/login?redirect=/checkout"
+              className="inline-flex items-center justify-center border border-primary bg-primary px-6 py-3 font-display uppercase text-primary-foreground"
+            >
+              Iniciar sesión
+            </a>
+            <a
+              href="/register?redirect=/checkout"
+              className="inline-flex items-center justify-center border border-ink bg-background px-6 py-3 font-display uppercase text-foreground"
+            >
+              Crear cuenta
+            </a>
+          </div>
+        </div>
       </section>
     );
   }
@@ -233,7 +284,7 @@ function CheckoutPage() {
           >
             {step === 0 && (
               <div className="space-y-4">
-                <h2 className="font-display text-3xl mb-2">¿Quién smashea hoy?</h2>
+                <h2 className="font-display text-3xl mb-2">¿Quien pide hoy?</h2>
                 <input
                   className="w-full border border-ink bg-background px-4 py-3 font-body focus:outline-none focus:border-primary"
                   placeholder="Tu nombre"

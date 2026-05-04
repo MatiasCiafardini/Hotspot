@@ -12,7 +12,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
-      { title: "Acceso dueño — SMASH" },
+      { title: "Acceso dueño - Hotspot" },
       { name: "robots", content: "noindex" },
     ],
   }),

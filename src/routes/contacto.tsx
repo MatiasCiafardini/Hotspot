@@ -5,9 +5,9 @@ import { Sticker } from "@/components/Sticker";
 export const Route = createFileRoute("/contacto")({
   head: () => ({
     meta: [
-      { title: "Contacto — SMASH" },
-      { name: "description", content: "Encontranos. Llamanos. Pedinos. SMASH burgers en el barrio." },
-      { property: "og:title", content: "Contacto — SMASH" },
+      { title: "Contacto - Hotspot" },
+      { name: "description", content: "Encontranos. Llamanos. Pedinos burgers en el barrio." },
+      { property: "og:title", content: "Contacto - Hotspot" },
     ],
   }),
   component: ContactPage,

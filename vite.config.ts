@@ -6,4 +6,13 @@
 // You can pass additional config via defineConfig({ vite: { ... } }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
-export default defineConfig();
+export default defineConfig({
+  vite: {
+    server: {
+      allowedHosts: ["hotspot.com.ar", "www.hotspot.com.ar"],
+    },
+    preview: {
+      allowedHosts: ["hotspot.com.ar", "www.hotspot.com.ar"],
+    },
+  },
+});

@@ -5,6 +5,7 @@ import { ShoppingBag, Menu, X, Lock } from "lucide-react";
 import logo from "@/assets/logo_hotspot.png";
 import { useCart } from "@/lib/cart";
 import { TransitionLink } from "@/components/RouteTransitionProvider";
+import { useCustomerAuth } from "@/lib/customer-auth";
 
 const NAV = [
   { to: "/", label: "Inicio" },
@@ -15,8 +16,14 @@ const NAV = [
 
 export function Header() {
   const { count, setOpen, lastAddedAt } = useCart();
+  const { customer, logout } = useCustomerAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+
+  const handleLogout = async () => {
+    await logout();
+    setMobileOpen(false);
+  };
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-ink bg-background shadow-[0_12px_24px_-24px_var(--ink)]">
@@ -24,7 +31,7 @@ export function Header() {
         <TransitionLink to="/" className="flex items-center gap-2">
           <motion.img
             src={logo}
-            alt="SMASH burgers"
+            alt="Hotspot burgers"
             className="h-12 md:h-14 w-auto"
             initial={{ rotate: -4, scale: 0.6, opacity: 0 }}
             animate={{ rotate: 0, scale: 1, opacity: 1 }}
@@ -57,6 +64,31 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
+          {customer ? (
+            <div className="hidden items-center gap-2 md:flex">
+              <TransitionLink
+                to="/mi-cuenta"
+                className="inline-flex h-10 items-center justify-center border border-ink bg-background px-3 font-display text-xs uppercase text-foreground transition-colors hover:bg-foreground hover:text-background"
+              >
+                Mi cuenta
+              </TransitionLink>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="inline-flex h-10 items-center justify-center border border-ink/40 bg-background px-3 font-display text-xs uppercase text-muted-foreground transition-colors hover:border-ink hover:text-foreground"
+              >
+                Salir
+              </button>
+            </div>
+          ) : (
+            <TransitionLink
+              to="/login"
+              className="hidden h-10 items-center justify-center border border-ink bg-background px-3 font-display text-xs uppercase text-foreground transition-colors hover:bg-foreground hover:text-background md:inline-flex"
+            >
+              Ingresar
+            </TransitionLink>
+          )}
+
           <TransitionLink
             to="/admin"
             aria-label="Acceso dueño"
@@ -113,7 +145,10 @@ export function Header() {
               animate="show"
               variants={{ show: { transition: { staggerChildren: 0.05 } } }}
             >
-              {NAV.concat([{ to: "/admin", label: "🔒 Acceso dueño" } as any]).map((item) => (
+              {NAV.concat(
+                customer ? ([{ to: "/mi-cuenta", label: "Mi cuenta" }] as any) : ([{ to: "/login", label: "Ingresar" }] as any),
+                [{ to: "/admin", label: "🔒 Acceso dueño" } as any],
+              ).map((item) => (
                 <motion.div
                   key={item.to}
                   variants={{
@@ -130,6 +165,15 @@ export function Header() {
                   </TransitionLink>
                 </motion.div>
               ))}
+              {customer && (
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="py-3 text-left font-display text-2xl uppercase tracking-wider text-primary-glow transition-colors hover:text-primary"
+                >
+                  Salir
+                </button>
+              )}
             </motion.nav>
           </motion.div>
         )}

@@ -10,9 +10,9 @@ import { TransitionLink } from "@/components/RouteTransitionProvider";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "SMASH — Hamburguesas street food" },
-      { name: "description", content: "Hamburguesas urbanas con sabor de barrio. Pedí online, retirá o pedí delivery." },
-      { property: "og:title", content: "SMASH — Hamburguesas street food" },
+      { title: "Hotspot - Hamburguesas street food" },
+      { name: "description", content: "Hamburguesas urbanas con sabor de barrio. Pedi online, retira o pedi delivery." },
+      { property: "og:title", content: "Hotspot - Hamburguesas street food" },
       { property: "og:image", content: "/src/assets/burger-double.jpg" },
     ],
   }),
@@ -29,7 +29,7 @@ function HomePage() {
           <div className="relative z-10 min-w-0 space-y-5 md:space-y-6">
             <div className="flex flex-wrap gap-2">
               <Sticker color="ink" rotate={-2} delay={0.1}>
-                <Flame className="h-3 w-3" /> Recién smasheada
+                <Flame className="h-3 w-3" /> Hecha al momento
               </Sticker>
               <Sticker color="cream" rotate={2} delay={0.2}>
                 Nueva carta
@@ -57,7 +57,7 @@ function HomePage() {
               transition={{ delay: 0.4 }}
               className="max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg"
             >
-              Carne smasheada al fuego, panes esponjosos y salsas de receta propia.
+              Burgers hechas al momento, panes esponjosos y salsas de receta propia.
               Sin vueltas. Sin fancy. Solo sabor de calle.
             </motion.p>
 
@@ -101,7 +101,7 @@ function HomePage() {
             >
               <img
                 src={heroImg}
-                alt="Hamburguesa SMASH"
+                alt="Hamburguesa Hotspot"
                 width={1536}
                 height={864}
                 className="h-full w-full object-cover object-center"
@@ -135,7 +135,7 @@ function HomePage() {
         <div className="mx-auto max-w-7xl px-4 md:px-6">
           <div className="grid gap-6 md:grid-cols-3">
             {[
-              { t: "Carne fresca", d: "Cortes locales, smasheados al momento sobre plancha caliente." },
+              { t: "Carne fresca", d: "Cortes locales, hechos al momento sobre plancha caliente." },
               { t: "Pan artesanal", d: "Brioche y bun negro horneados todos los días en el barrio." },
               { t: "Salsas de la casa", d: "Recetas propias. Picantes, dulces, ahumadas. Vos elegís." },
             ].map((f, i) => (
@@ -160,8 +160,8 @@ function HomePage() {
       <section className="relative overflow-hidden bg-foreground py-16 text-background">
         <div className="absolute inset-0 halftone opacity-20" />
         <div className="relative mx-auto max-w-7xl px-4 text-center md:px-6">
-          <h2 className="font-display text-5xl md:text-7xl">¿Listo para smashear?</h2>
-          <p className="mt-3 text-lg opacity-90">Pedí online en 2 minutos. Sin login. Sin vueltas.</p>
+          <h2 className="font-display text-5xl md:text-7xl">¿Listo para pedir?</h2>
+          <p className="mt-3 text-lg opacity-90">Pedi online en 2 minutos. Sin vueltas.</p>
           <div className="mt-8 flex justify-center">
             <TransitionLink to="/menu">
               <SmashButton size="lg" variant="ink">

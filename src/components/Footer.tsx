@@ -7,7 +7,7 @@ export function Footer() {
     <footer className="border-t border-ink bg-background text-foreground">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 md:grid-cols-4 md:px-6">
         <div>
-          <img src={logo} alt="SMASH" className="h-16 w-auto" />
+          <img src={logo} alt="Hotspot" className="h-16 w-auto" />
           <p className="mt-3 text-sm text-foreground/70">
             Hamburguesas honestas, sabor de barrio. Hechas con bronca y amor.
           </p>
@@ -59,7 +59,7 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-foreground/20 px-4 py-4 text-center text-xs text-foreground/50">
-        © {new Date().getFullYear()} SMASH. Todos los derechos rebeldes.
+        © {new Date().getFullYear()} Hotspot. Todos los derechos reservados.
       </div>
     </footer>
   );
