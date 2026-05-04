@@ -17,15 +17,15 @@ function AboutPage() {
   return (
     <section className="mx-auto max-w-4xl px-4 py-16 md:px-6">
       <div className="flex flex-wrap gap-2 mb-6">
-        <Sticker color="red">El spot</Sticker>
-        <Sticker color="cyan" rotate={4}>Desde 2019</Sticker>
+        <Sticker color="ink">El spot</Sticker>
+        <Sticker color="cream" rotate={2}>Desde 2019</Sticker>
       </div>
       <motion.h1
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="font-display text-5xl md:text-7xl mb-8"
       >
-        Nacimos en una <span className="bg-mustard px-2 -rotate-1 inline-block">esquina</span>.
+        Nacimos en una <span className="bg-ink px-2 text-cream -rotate-1 inline-block">esquina</span>.
       </motion.h1>
       <div className="prose prose-lg max-w-none space-y-4 font-body text-foreground">
         <p>
@@ -39,7 +39,7 @@ function AboutPage() {
           carne fresca todos los días y salsas que no encontrás en ningún otro
           lado. Si te gusta lo simple bien hecho, este es tu lugar.
         </p>
-        <p className="font-display text-3xl text-primary spray-text">
+        <p className="font-display text-3xl text-ink">
           Sin vueltas. Sin fancy. Solo sabor.
         </p>
       </div>

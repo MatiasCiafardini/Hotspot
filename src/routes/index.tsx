@@ -1,10 +1,11 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { Flame, Truck, Star, ArrowRight } from "lucide-react";
-import heroImg from "@/assets/hero-burger.jpg";
+import heroImg from "@/assets/burger-double.jpg";
 import { SmashButton } from "@/components/SmashButton";
 import { Sticker } from "@/components/Sticker";
 import { Marquee } from "@/components/Marquee";
+import { TransitionLink } from "@/components/RouteTransitionProvider";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -12,7 +13,7 @@ export const Route = createFileRoute("/")({
       { title: "SMASH — Hamburguesas street food" },
       { name: "description", content: "Hamburguesas urbanas con sabor de barrio. Pedí online, retirá o pedí delivery." },
       { property: "og:title", content: "SMASH — Hamburguesas street food" },
-      { property: "og:image", content: "/src/assets/hero-burger.jpg" },
+      { property: "og:image", content: "/src/assets/burger-double.jpg" },
     ],
   }),
   component: HomePage,
@@ -22,15 +23,15 @@ function HomePage() {
   return (
     <>
       {/* HERO — street poster */}
-      <section className="relative overflow-hidden border-b-[3px] border-ink">
+      <section className="relative overflow-hidden border-b border-ink bg-background">
         <div className="absolute inset-0 halftone" />
-        <div className="relative mx-auto grid max-w-7xl gap-8 px-4 py-12 md:grid-cols-2 md:items-center md:py-20 md:px-6">
-          <div className="relative z-10 space-y-6">
+        <div className="relative mx-auto grid max-w-7xl gap-6 px-4 py-8 md:grid-cols-2 md:items-center md:gap-8 md:px-6 md:py-20">
+          <div className="relative z-10 min-w-0 space-y-5 md:space-y-6">
             <div className="flex flex-wrap gap-2">
-              <Sticker color="red" rotate={-5} delay={0.1}>
+              <Sticker color="ink" rotate={-2} delay={0.1}>
                 <Flame className="h-3 w-3" /> Recién smasheada
               </Sticker>
-              <Sticker color="cyan" rotate={4} delay={0.2}>
+              <Sticker color="cream" rotate={2} delay={0.2}>
                 Nueva carta
               </Sticker>
             </div>
@@ -39,11 +40,11 @@ function HomePage() {
               initial={{ opacity: 0, y: 20, rotate: -2 }}
               animate={{ opacity: 1, y: 0, rotate: 0 }}
               transition={{ delay: 0.15, type: "spring", stiffness: 200, damping: 18 }}
-              className="font-display text-6xl md:text-8xl leading-[0.85]"
+              className="max-w-full break-words font-display text-[2.75rem] leading-[0.92] min-[390px]:text-[3rem] sm:text-7xl md:text-8xl md:leading-[0.85]"
             >
               Hamburguesas
               <br />
-              <span className="inline-block bg-primary px-3 text-primary-foreground -rotate-2 spray-text">
+              <span className="inline-block bg-foreground px-3 text-background -rotate-1">
                 con bronca
               </span>
               <br />
@@ -54,7 +55,7 @@ function HomePage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="max-w-md text-lg text-muted-foreground"
+              className="max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg"
             >
               Carne smasheada al fuego, panes esponjosos y salsas de receta propia.
               Sin vueltas. Sin fancy. Solo sabor de calle.
@@ -64,59 +65,64 @@ function HomePage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.55 }}
-              className="flex flex-wrap gap-3"
+              className="grid gap-3 sm:flex sm:flex-wrap"
             >
-              <Link to="/menu">
-                <SmashButton size="lg" glow>
+              <TransitionLink to="/menu" className="min-w-0">
+                <SmashButton size="lg" glow className="w-full sm:w-auto">
                   Ver el menú <ArrowRight className="h-5 w-5" />
                 </SmashButton>
-              </Link>
-              <Link to="/contacto">
-                <SmashButton size="lg" variant="ghost">
+              </TransitionLink>
+              <TransitionLink to="/contacto" className="min-w-0">
+                <SmashButton size="lg" variant="ghost" className="w-full sm:w-auto">
                   Cómo llegar
                 </SmashButton>
-              </Link>
+              </TransitionLink>
             </motion.div>
 
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.7 }}
-              className="flex flex-wrap gap-4 pt-4 text-sm font-display uppercase"
+              className="flex flex-wrap gap-x-4 gap-y-2 pt-4 text-xs font-display uppercase sm:text-sm"
             >
               <span className="flex items-center gap-2"><Truck className="h-4 w-4 text-primary" /> Delivery</span>
-              <span className="flex items-center gap-2"><Star className="h-4 w-4 text-mustard" /> 4.9 / 5</span>
+              <span className="flex items-center gap-2"><Star className="h-4 w-4 text-primary" /> 4.9 / 5</span>
               <span className="flex items-center gap-2"><Flame className="h-4 w-4 text-primary" /> Carne 100%</span>
             </motion.div>
           </div>
 
-          {/* Hero image with sticker accents */}
-          <div className="relative">
-            <motion.img
-              src={heroImg}
-              alt="Hamburguesa SMASH"
-              width={1536}
-              height={1536}
-              initial={{ scale: 0.6, rotate: -8, opacity: 0 }}
-              animate={{ scale: 1, rotate: -2, opacity: 1 }}
-              transition={{ type: "spring", stiffness: 180, damping: 16, delay: 0.2 }}
-              className="relative z-10 w-full max-w-xl mx-auto border-[4px] border-ink shadow-[10px_10px_0_0_var(--ink)]"
-            />
+          {/* Hero image with label accents */}
+          <div className="relative z-10 mt-1 min-w-0 md:mt-0">
             <motion.div
-              className="absolute -top-4 -left-4 z-20"
+              initial={{ scale: 0.86, rotate: -2, opacity: 0 }}
+              animate={{ scale: 1, rotate: 0, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 180, damping: 16, delay: 0.2 }}
+              className="relative z-10 mx-auto aspect-[16/9] max-h-[220px] w-full max-w-2xl overflow-hidden border border-ink bg-card shadow-[0_28px_60px_-38px_var(--ink)] sm:max-h-none"
+            >
+              <img
+                src={heroImg}
+                alt="Hamburguesa SMASH"
+                width={1536}
+                height={864}
+                className="h-full w-full object-cover object-center"
+              />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/25 via-transparent to-transparent" />
+            </motion.div>
+            <motion.div
+              className="absolute -top-3 left-2 z-20 md:-left-4 md:-top-4"
               initial={{ scale: 0, rotate: -40 }}
               animate={{ scale: 1, rotate: -15 }}
               transition={{ type: "spring", stiffness: 280, damping: 14, delay: 0.7 }}
             >
-              <Sticker color="mustard" rotate={-15}>NUEVO</Sticker>
+              <Sticker color="mustard" rotate={-8}>NUEVO</Sticker>
             </motion.div>
             <motion.div
-              className="absolute -bottom-4 -right-4 z-20"
+              className="absolute -bottom-3 right-2 z-20 md:-bottom-4 md:-right-4"
               initial={{ scale: 0, rotate: 30 }}
               animate={{ scale: 1, rotate: 8 }}
               transition={{ type: "spring", stiffness: 280, damping: 14, delay: 0.9 }}
             >
-              <Sticker color="ink" rotate={8}>★ TOP 1</Sticker>
+              <Sticker color="ink" rotate={4}>TOP 1</Sticker>
             </motion.div>
           </div>
         </div>
@@ -125,7 +131,7 @@ function HomePage() {
       <Marquee />
 
       {/* Features strip */}
-      <section className="bg-cream py-16">
+      <section className="bg-background py-16">
         <div className="mx-auto max-w-7xl px-4 md:px-6">
           <div className="grid gap-6 md:grid-cols-3">
             {[
@@ -151,17 +157,17 @@ function HomePage() {
       </section>
 
       {/* CTA strip */}
-      <section className="relative overflow-hidden bg-primary py-16 text-primary-foreground">
+      <section className="relative overflow-hidden bg-foreground py-16 text-background">
         <div className="absolute inset-0 halftone opacity-20" />
         <div className="relative mx-auto max-w-7xl px-4 text-center md:px-6">
-          <h2 className="font-display text-5xl md:text-7xl spray-text">¿Listo para smashear?</h2>
+          <h2 className="font-display text-5xl md:text-7xl">¿Listo para smashear?</h2>
           <p className="mt-3 text-lg opacity-90">Pedí online en 2 minutos. Sin login. Sin vueltas.</p>
           <div className="mt-8 flex justify-center">
-            <Link to="/menu">
+            <TransitionLink to="/menu">
               <SmashButton size="lg" variant="ink">
                 Ir al menú →
               </SmashButton>
-            </Link>
+            </TransitionLink>
           </div>
         </div>
       </section>

@@ -1,9 +1,10 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { useLocation } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { ShoppingBag, Menu, X, Lock } from "lucide-react";
-import logo from "@/assets/logo-smash.png";
+import logo from "@/assets/logo_hotspot.png";
 import { useCart } from "@/lib/cart";
+import { TransitionLink } from "@/components/RouteTransitionProvider";
 
 const NAV = [
   { to: "/", label: "Inicio" },
@@ -18,25 +19,25 @@ export function Header() {
   const location = useLocation();
 
   return (
-    <header className="sticky top-0 z-40 border-b-[3px] border-ink bg-cream/95 backdrop-blur supports-[backdrop-filter]:bg-cream/80">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-ink bg-background shadow-[0_12px_24px_-24px_var(--ink)]">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 md:px-6">
-        <Link to="/" className="flex items-center gap-2">
+        <TransitionLink to="/" className="flex items-center gap-2">
           <motion.img
             src={logo}
             alt="SMASH burgers"
             className="h-12 md:h-14 w-auto"
-            initial={{ rotate: -8, scale: 0.6, opacity: 0 }}
-            animate={{ rotate: -2, scale: 1, opacity: 1 }}
+            initial={{ rotate: -4, scale: 0.6, opacity: 0 }}
+            animate={{ rotate: 0, scale: 1, opacity: 1 }}
             transition={{ type: "spring", stiffness: 200, damping: 12 }}
-            whileHover={{ rotate: 2, scale: 1.05 }}
+            whileHover={{ scale: 1.05 }}
           />
-        </Link>
+        </TransitionLink>
 
         <nav className="hidden items-center gap-1 md:flex">
           {NAV.map((item) => {
             const active = location.pathname === item.to;
             return (
-              <Link
+              <TransitionLink
                 key={item.to}
                 to={item.to}
                 className={`relative px-3 py-2 font-display uppercase text-sm tracking-wider transition-colors ${
@@ -47,27 +48,27 @@ export function Header() {
                 {active && (
                   <motion.span
                     layoutId="nav-underline"
-                    className="absolute -bottom-0.5 left-2 right-2 h-1 bg-primary"
+                    className="absolute -bottom-0.5 left-2 right-2 h-0.5 bg-primary"
                   />
                 )}
-              </Link>
+              </TransitionLink>
             );
           })}
         </nav>
 
         <div className="flex items-center gap-2">
-          <Link
+          <TransitionLink
             to="/admin"
             aria-label="Acceso dueño"
-            className="hidden md:inline-flex h-10 w-10 items-center justify-center border-[3px] border-ink bg-cream text-ink hover:bg-ink hover:text-cream transition-colors"
+            className="hidden md:inline-flex h-10 w-10 items-center justify-center border border-ink bg-background text-foreground hover:bg-foreground hover:text-background transition-colors"
           >
             <Lock className="h-4 w-4" />
-          </Link>
+          </TransitionLink>
 
           <motion.button
             onClick={() => setOpen(true)}
             whileTap={{ scale: 0.9 }}
-            className="relative inline-flex h-10 items-center gap-2 border-[3px] border-ink bg-primary px-3 text-primary-foreground font-display uppercase text-sm shadow-[3px_3px_0_0_var(--ink)] hover:shadow-[5px_5px_0_0_var(--ink)] transition-shadow"
+            className="relative inline-flex h-10 items-center gap-2 border border-primary bg-primary px-3 text-primary-foreground font-display uppercase text-sm shadow-[0_12px_24px_-18px_var(--ink)] transition-shadow hover:shadow-[0_18px_32px_-22px_var(--ink)]"
           >
             <ShoppingBag className="h-4 w-4" />
             <span className="hidden sm:inline">Carrito</span>
@@ -79,7 +80,7 @@ export function Header() {
                   animate={{ scale: 1, y: 0, opacity: 1 }}
                   exit={{ scale: 0, opacity: 0 }}
                   transition={{ type: "spring", stiffness: 500, damping: 14 }}
-                  className="absolute -top-2 -right-2 flex h-6 min-w-[1.5rem] items-center justify-center border-2 border-ink bg-mustard text-ink text-xs font-display"
+                  className="absolute -top-2 -right-2 flex h-6 min-w-[1.5rem] items-center justify-center border border-ink bg-background text-foreground text-xs font-display"
                 >
                   {count}
                 </motion.span>
@@ -88,7 +89,7 @@ export function Header() {
           </motion.button>
 
           <button
-            className="md:hidden inline-flex h-10 w-10 items-center justify-center border-[3px] border-ink bg-cream"
+            className="md:hidden inline-flex h-10 w-10 items-center justify-center border border-ink bg-background"
             onClick={() => setMobileOpen((o) => !o)}
             aria-label="Menú"
           >
@@ -104,7 +105,7 @@ export function Header() {
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.25, ease: [0.65, 0, 0.35, 1] }}
-            className="overflow-hidden border-t-[3px] border-ink bg-ink text-cream md:hidden"
+            className="overflow-hidden border-t border-ink bg-ink text-cream md:hidden"
           >
             <motion.nav
               className="flex flex-col px-4 py-4"
@@ -120,13 +121,13 @@ export function Header() {
                     show: { x: 0, opacity: 1 },
                   }}
                 >
-                  <Link
+                  <TransitionLink
                     to={item.to as any}
                     onClick={() => setMobileOpen(false)}
                     className="block py-3 font-display uppercase text-2xl tracking-wider hover:text-primary-glow transition-colors"
                   >
                     {item.label}
-                  </Link>
+                  </TransitionLink>
                 </motion.div>
               ))}
             </motion.nav>

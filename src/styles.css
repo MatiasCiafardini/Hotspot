@@ -4,9 +4,9 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* SMASH - Street Food Design System
- * Skate / sticker aesthetic: red + mustard + cream + black
- * Display: bold condensed graffiti feel; Body: clean sans
+/* SMASH - Urban monochrome design system
+ * Black / white base with orange action accents.
+ * Display: bold condensed signage; Body: clean sans
  */
 
 @theme inline {
@@ -32,6 +32,7 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-mustard: var(--mustard);
   --color-mustard-foreground: var(--mustard-foreground);
+  --color-orange: var(--orange);
   --color-cyan: var(--cyan);
   --color-pink: var(--pink);
   --color-cream: var(--cream);
@@ -43,55 +44,52 @@
   --color-ring: var(--ring);
 
   --font-display: "Bowlby One", "Impact", system-ui, sans-serif;
-  --font-graffiti: "Permanent Marker", cursive;
+  --font-graffiti: "Space Grotesk", system-ui, sans-serif;
   --font-body: "Space Grotesk", system-ui, sans-serif;
 
-  --shadow-sticker: 4px 4px 0 0 var(--ink);
-  --shadow-sticker-lg: 8px 8px 0 0 var(--ink);
-  --shadow-glow-red: 0 0 0 4px color-mix(in oklab, var(--primary) 40%, transparent), 0 10px 30px -5px color-mix(in oklab, var(--primary) 50%, transparent);
+  --shadow-sticker: 0 12px 24px -18px var(--ink);
+  --shadow-sticker-lg: 0 18px 36px -24px var(--ink);
+  --shadow-glow-red: 0 0 0 4px color-mix(in oklab, var(--primary) 28%, transparent), 0 12px 28px -16px var(--primary);
 }
 
 :root {
   --radius: 0.5rem;
-  /* Cream paper */
-  --background: oklch(0.97 0.025 85);
-  --foreground: oklch(0.18 0.02 30);
+  --background: oklch(0.08 0 0);
+  --foreground: oklch(0.97 0 0);
 
-  --card: oklch(0.99 0.015 85);
-  --card-foreground: oklch(0.18 0.02 30);
+  --card: oklch(0.12 0 0);
+  --card-foreground: oklch(0.97 0 0);
 
-  --popover: oklch(0.99 0.015 85);
-  --popover-foreground: oklch(0.18 0.02 30);
+  --popover: oklch(0.12 0 0);
+  --popover-foreground: oklch(0.97 0 0);
 
-  /* Punchy red */
-  --primary: oklch(0.58 0.24 27);
-  --primary-foreground: oklch(0.98 0.02 85);
-  --primary-glow: oklch(0.68 0.26 25);
+  --primary: oklch(0.68 0.19 49);
+  --primary-foreground: oklch(0.1 0 0);
+  --primary-glow: oklch(0.75 0.19 55);
+  --orange: var(--primary);
 
-  --secondary: oklch(0.18 0.02 30);
-  --secondary-foreground: oklch(0.98 0.02 85);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.08 0 0);
 
-  --muted: oklch(0.93 0.02 85);
-  --muted-foreground: oklch(0.45 0.04 50);
+  --muted: oklch(0.18 0 0);
+  --muted-foreground: oklch(0.7 0 0);
 
-  --accent: oklch(0.85 0.18 90);
-  --accent-foreground: oklch(0.18 0.02 30);
+  --accent: oklch(0.2 0 0);
+  --accent-foreground: oklch(0.97 0 0);
 
-  /* Mustard yellow */
-  --mustard: oklch(0.82 0.18 90);
-  --mustard-foreground: oklch(0.18 0.02 30);
+  --mustard: var(--primary);
+  --mustard-foreground: oklch(0.1 0 0);
 
-  /* Sticker accents */
-  --cyan: oklch(0.78 0.15 220);
-  --pink: oklch(0.72 0.22 350);
-  --cream: oklch(0.97 0.025 85);
-  --ink: oklch(0.12 0.01 30);
+  --cyan: oklch(0.2 0 0);
+  --pink: oklch(0.3 0 0);
+  --cream: oklch(0.08 0 0);
+  --ink: oklch(0.97 0 0);
 
-  --destructive: oklch(0.58 0.24 27);
-  --destructive-foreground: oklch(0.98 0.02 85);
-  --border: oklch(0.12 0.01 30);
-  --input: oklch(0.92 0.02 85);
-  --ring: oklch(0.58 0.24 27);
+  --destructive: oklch(0.52 0.16 35);
+  --destructive-foreground: oklch(0.97 0 0);
+  --border: oklch(0.97 0 0);
+  --input: oklch(0.2 0 0);
+  --ring: var(--primary);
 }
 
 .dark {
@@ -101,22 +99,22 @@
   --card-foreground: oklch(0.97 0.025 85);
   --popover: oklch(0.18 0.02 30);
   --popover-foreground: oklch(0.97 0.025 85);
-  --primary: oklch(0.65 0.26 25);
-  --primary-foreground: oklch(0.12 0.01 30);
-  --primary-glow: oklch(0.72 0.27 25);
-  --secondary: oklch(0.97 0.025 85);
-  --secondary-foreground: oklch(0.14 0.015 30);
-  --muted: oklch(0.22 0.015 30);
-  --muted-foreground: oklch(0.7 0.03 50);
-  --accent: oklch(0.82 0.18 90);
-  --accent-foreground: oklch(0.14 0.015 30);
-  --mustard: oklch(0.82 0.18 90);
-  --mustard-foreground: oklch(0.14 0.015 30);
-  --cream: oklch(0.97 0.025 85);
-  --ink: oklch(0.06 0.01 30);
-  --border: oklch(0.97 0.025 85);
-  --input: oklch(0.22 0.015 30);
-  --ring: oklch(0.65 0.26 25);
+  --primary: oklch(0.72 0.2 52);
+  --primary-foreground: oklch(0.08 0 0);
+  --primary-glow: oklch(0.78 0.19 56);
+  --secondary: oklch(0.96 0 0);
+  --secondary-foreground: oklch(0.12 0 0);
+  --muted: oklch(0.2 0 0);
+  --muted-foreground: oklch(0.72 0 0);
+  --accent: oklch(0.25 0 0);
+  --accent-foreground: oklch(0.96 0 0);
+  --mustard: var(--primary);
+  --mustard-foreground: oklch(0.08 0 0);
+  --cream: oklch(0.96 0 0);
+  --ink: oklch(0.06 0 0);
+  --border: oklch(0.84 0 0);
+  --input: oklch(0.22 0 0);
+  --ring: var(--primary);
 }
 
 @layer base {
@@ -129,21 +127,50 @@
     color: var(--color-foreground);
     font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
   }
 
   h1, h2, h3, h4 {
     font-family: var(--font-display);
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
     line-height: 0.95;
     text-transform: uppercase;
   }
 
-  /* Subtle paper grain across body */
   body {
     background-image:
-      radial-gradient(circle at 20% 10%, color-mix(in oklab, var(--mustard) 15%, transparent) 0, transparent 40%),
-      radial-gradient(circle at 80% 90%, color-mix(in oklab, var(--primary) 10%, transparent) 0, transparent 35%);
+      linear-gradient(color-mix(in oklab, var(--foreground) 10%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in oklab, var(--foreground) 10%, transparent) 1px, transparent 1px);
+    background-size: 44px 44px;
     background-attachment: fixed;
+  }
+
+  button,
+  a,
+  select,
+  summary,
+  [role="button"],
+  input[type="button"],
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="submit"],
+  input[type="reset"],
+  label:has(input[type="checkbox"]:not(:disabled)),
+  label:has(input[type="radio"]:not(:disabled)) {
+    cursor: pointer;
+  }
+
+  input:not([type="button"]):not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="reset"]),
+  textarea {
+    cursor: text;
+  }
+
+  button:disabled,
+  select:disabled,
+  input:disabled,
+  textarea:disabled,
+  label:has(input:disabled) {
+    cursor: not-allowed;
   }
 }
 
@@ -222,20 +249,21 @@
 
 /* Sticker card utility */
 .sticker {
-  border: 3px solid var(--ink);
+  border: 1px solid color-mix(in oklab, var(--ink) 88%, transparent);
   box-shadow: var(--shadow-sticker);
   background-color: var(--card);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .sticker-lg {
-  border: 4px solid var(--ink);
+  border: 1px solid color-mix(in oklab, var(--ink) 88%, transparent);
   box-shadow: var(--shadow-sticker-lg);
 }
 
 .sticker:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 6px 6px 0 0 var(--ink);
+  transform: translateY(-3px);
+  box-shadow: 0 22px 42px -28px var(--ink);
+  border-color: var(--primary);
 }
 
 /* Diagonal section divider */
@@ -248,14 +276,14 @@
 
 /* Halftone dots overlay */
 .halftone {
-  background-image: radial-gradient(circle, var(--ink) 1px, transparent 1px);
-  background-size: 8px 8px;
-  opacity: 0.08;
+  background-image:
+    linear-gradient(135deg, color-mix(in oklab, var(--ink) 8%, transparent) 25%, transparent 25%),
+    linear-gradient(315deg, color-mix(in oklab, var(--ink) 8%, transparent) 25%, transparent 25%);
+  background-size: 18px 18px;
+  opacity: 0.12;
 }
 
 /* Spray drips */
 .spray-text {
-  text-shadow:
-    2px 2px 0 var(--ink),
-    -1px -1px 0 var(--mustard);
+  text-shadow: none;
 }

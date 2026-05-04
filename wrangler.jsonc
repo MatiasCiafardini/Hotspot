@@ -4,4 +4,14 @@
   "compatibility_date": "2025-09-24",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
+  "routes": [
+    {
+      "pattern": "hotspot.com.ar",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.hotspot.com.ar",
+      "custom_domain": true
+    }
+  ],
 }

@@ -24,11 +24,21 @@ export function resolveImage(url: string | null | undefined): string {
   return map[url] ?? url;
 }
 
-export const CATEGORIES: { key: string; label: string }[] = [
+export type ProductCategory = {
+  id?: string;
+  key: string;
+  label: string;
+  sort_order?: number | null;
+  active?: boolean | null;
+};
+
+export const DEFAULT_CATEGORIES: ProductCategory[] = [
   { key: "burgers", label: "Hamburguesas" },
   { key: "sides", label: "Sides" },
   { key: "drinks", label: "Bebidas" },
 ];
+
+export const CATEGORIES = DEFAULT_CATEGORIES;
 
 export type Product = {
   id: string;
@@ -40,4 +50,8 @@ export type Product = {
   badge: string | null;
   available: boolean;
   sort_order: number;
+  promotion?: string | null;
+  stock_quantity?: number | null;
+  low_stock_threshold?: number | null;
+  ingredients?: string[] | null;
 };

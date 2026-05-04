@@ -1,201 +1,151 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { LogOut, ShoppingBag, DollarSign, Clock, Package } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AlertTriangle, CheckCircle2, Clock, DollarSign, PackageSearch } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { SmashButton } from "@/components/SmashButton";
-import { Sticker } from "@/components/Sticker";
-import { toast } from "sonner";
+import { AdminPageHeader, StatCard, AdminButton } from "@/components/admin/AdminBits";
+import {
+  formatDateTime,
+  formatMoney,
+  ORDER_STATUS_CLASS,
+  ORDER_STATUS_LABEL,
+  shortOrderId,
+  type AdminOrder,
+} from "@/lib/admin";
+import type { Product } from "@/lib/products";
 
 export const Route = createFileRoute("/admin/dashboard")({
-  head: () => ({ meta: [{ title: "Dashboard — SMASH" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({ meta: [{ title: "Dashboard admin - Hotspot" }, { name: "robots", content: "noindex" }] }),
   component: Dashboard,
 });
 
-type Order = {
-  id: string;
-  customer_name: string;
-  customer_phone: string;
-  customer_address: string | null;
-  delivery_method: string;
-  notes: string | null;
-  total: number;
-  status: "pending" | "preparing" | "ready" | "delivered" | "cancelled";
-  created_at: string;
-};
-
-const STATUS_OPTIONS: Order["status"][] = ["pending", "preparing", "ready", "delivered", "cancelled"];
-const STATUS_COLOR: Record<Order["status"], string> = {
-  pending: "bg-mustard text-ink",
-  preparing: "bg-cyan text-ink",
-  ready: "bg-primary text-primary-foreground",
-  delivered: "bg-ink text-cream",
-  cancelled: "bg-muted text-muted-foreground",
-};
-const STATUS_LABEL: Record<Order["status"], string> = {
-  pending: "Pendiente",
-  preparing: "Cocinando",
-  ready: "Listo",
-  delivered: "Entregado",
-  cancelled: "Cancelado",
-};
+const AUTO_REFRESH_MS = 4000;
 
 function Dashboard() {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [authChecked, setAuthChecked] = useState(false);
-  const navigate = useNavigate();
+
+  const load = useCallback(async () => {
+    const [{ data: ordersData }, { data: productsData }] = await Promise.all([
+      (supabase as any).from("orders").select("*, order_items(*)").order("created_at", { ascending: false }).limit(20),
+      (supabase as any).from("products").select("*").order("sort_order", { ascending: true }),
+    ]);
+    setOrders((ordersData as AdminOrder[]) ?? []);
+    setProducts((productsData as Product[]) ?? []);
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
-    const check = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        navigate({ to: "/admin" });
-        return;
-      }
-      setAuthChecked(true);
-      const { data: ord, error } = await supabase
-        .from("orders")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) toast.error("Solo el dueño puede ver pedidos.");
-      setOrders((ord as Order[]) ?? []);
-      setLoading(false);
-    };
-    check();
+    load();
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (!session) navigate({ to: "/admin" });
-    });
-
-    // realtime
     const channel = supabase
-      .channel("orders-changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
-        supabase
-          .from("orders")
-          .select("*")
-          .order("created_at", { ascending: false })
-          .then(({ data }) => setOrders((data as Order[]) ?? []));
-      })
+      .channel("admin-dashboard-orders")
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, load)
+      .on("postgres_changes", { event: "*", schema: "public", table: "order_items" }, load)
       .subscribe();
 
+    const intervalId = window.setInterval(load, AUTO_REFRESH_MS);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
-      sub.subscription.unsubscribe();
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       supabase.removeChannel(channel);
     };
-  }, [navigate]);
+  }, [load]);
 
-  const updateStatus = async (id: string, status: Order["status"]) => {
-    const { error } = await supabase.from("orders").update({ status }).eq("id", id);
-    if (error) return toast.error("No se pudo actualizar.");
-    toast.success(`Marcado como ${STATUS_LABEL[status]}`);
-  };
-
-  const logout = async () => {
-    await supabase.auth.signOut();
-    navigate({ to: "/admin" });
-  };
-
-  if (!authChecked) return null;
-
-  const stats = {
-    total: orders.length,
-    pending: orders.filter((o) => o.status === "pending").length,
-    revenue: orders
-      .filter((o) => o.status !== "cancelled")
-      .reduce((s, o) => s + Number(o.total), 0),
-  };
-
-  const cards = [
-    { title: "Pedidos", value: stats.total, Icon: ShoppingBag, color: "bg-mustard" },
-    { title: "Pendientes", value: stats.pending, Icon: Clock, color: "bg-primary text-primary-foreground" },
-    { title: "Recaudado", value: `$${stats.revenue.toFixed(0)}`, Icon: DollarSign, color: "bg-cyan" },
-  ];
+  const today = new Date().toDateString();
+  const stats = useMemo(() => {
+    const todayOrders = orders.filter((order) => new Date(order.created_at).toDateString() === today);
+    return {
+      pending: orders.filter((order) => ["pending", "pending_payment", "pending_confirmation"].includes(order.status)).length,
+      confirmedToday: todayOrders.filter((order) => ["confirmed", "preparing", "ready", "delivered"].includes(order.status)).length,
+      revenueToday: todayOrders
+        .filter((order) => !["rejected", "cancelled"].includes(order.status))
+        .reduce((sum, order) => sum + Number(order.total), 0),
+      lowStock: products.filter((item) => Number(item.stock_quantity ?? 0) <= Number(item.low_stock_threshold ?? 0) || !item.available).length,
+    };
+  }, [orders, products, today]);
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-10 md:px-6">
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-        <div>
-          <div className="flex gap-2 mb-2">
-            <Sticker color="red">Dashboard</Sticker>
+    <>
+      <AdminPageHeader
+        eyebrow="Vista rapida"
+        title="Dashboard"
+        description="Resumen del dia, pedidos entrantes y alertas operativas del local."
+        action={
+          <Link to="/admin/pedidos">
+            <AdminButton>Gestionar pedidos</AdminButton>
+          </Link>
+        }
+      />
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard title="Pedidos pendientes" value={stats.pending} Icon={Clock} tone="orange" />
+        <StatCard title="Confirmados hoy" value={stats.confirmedToday} Icon={CheckCircle2} />
+        <StatCard title="Vendido hoy" value={formatMoney(stats.revenueToday)} Icon={DollarSign} />
+        <StatCard title="Bajo stock" value={stats.lowStock} Icon={AlertTriangle} tone={stats.lowStock ? "danger" : "default"} />
+      </div>
+
+      <section className="mt-8 grid gap-6 xl:grid-cols-[1fr_360px]">
+        <div className="rounded-lg border border-white/10 bg-zinc-900/70">
+          <div className="flex items-center justify-between border-b border-white/10 p-4">
+            <h2 className="font-display text-2xl">Ultimos pedidos</h2>
+            <span className="text-xs uppercase text-zinc-500">{loading ? "Cargando" : `${orders.length} recientes`}</span>
           </div>
-          <h1 className="font-display text-5xl md:text-6xl">Pedidos</h1>
-        </div>
-        <SmashButton onClick={logout} variant="ink">
-          <LogOut className="h-4 w-4" /> Salir
-        </SmashButton>
-      </div>
-
-      {/* Stat cards as bricks */}
-      <div className="grid gap-4 sm:grid-cols-3 mb-10">
-        {cards.map((c, i) => (
-          <motion.div
-            key={c.title}
-            initial={{ opacity: 0, y: 30, rotate: -2 + i }}
-            animate={{ opacity: 1, y: 0, rotate: 0 }}
-            transition={{ type: "spring", stiffness: 220, damping: 16, delay: i * 0.08 }}
-            className={`sticker-lg p-5 ${c.color}`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="font-display text-sm uppercase">{c.title}</span>
-              <c.Icon className="h-5 w-5" />
-            </div>
-            <div className="mt-2 font-display text-4xl">{c.value}</div>
-          </motion.div>
-        ))}
-      </div>
-
-      {loading ? (
-        <p className="text-muted-foreground">Cargando…</p>
-      ) : orders.length === 0 ? (
-        <div className="sticker-lg bg-card p-10 text-center">
-          <Package className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-          <p className="font-display text-2xl">Sin pedidos todavía</p>
-          <p className="text-muted-foreground text-sm">Cuando entren pedidos los vas a ver acá en tiempo real.</p>
-        </div>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {orders.map((o, i) => (
-            <motion.article
-              key={o.id}
-              initial={{ opacity: 0, y: 40, rotate: i % 2 ? -1 : 1 }}
-              animate={{ opacity: 1, y: 0, rotate: 0 }}
-              transition={{ type: "spring", stiffness: 220, damping: 18, delay: i * 0.04 }}
-              className="sticker-lg bg-card p-5 space-y-3"
-            >
-              <div className="flex items-center justify-between">
-                <h3 className="font-display text-xl">{o.customer_name}</h3>
-                <span className={`border-[2px] border-ink px-2 py-0.5 text-xs font-display uppercase ${STATUS_COLOR[o.status]}`}>
-                  {STATUS_LABEL[o.status]}
-                </span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                📞 {o.customer_phone}
-                {o.customer_address && <><br />📍 {o.customer_address}</>}
-              </p>
-              {o.notes && (
-                <p className="border-l-[3px] border-primary pl-2 text-sm italic">{o.notes}</p>
-              )}
-              <div className="flex items-center justify-between pt-2 border-t-[2px] border-ink">
-                <span className="text-xs text-muted-foreground">
-                  {new Date(o.created_at).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" })}
-                </span>
-                <span className="font-display text-2xl text-primary">${Number(o.total).toFixed(2)}</span>
-              </div>
-              <select
-                value={o.status}
-                onChange={(e) => updateStatus(o.id, e.target.value as Order["status"])}
-                className="w-full border-[3px] border-ink bg-cream px-3 py-2 font-display text-sm uppercase focus:outline-none"
+          <div className="divide-y divide-white/10">
+            {orders.slice(0, 6).map((order) => (
+              <Link
+                key={order.id}
+                to="/admin/pedidos"
+                className="grid gap-3 p-4 transition-colors hover:bg-white/5 md:grid-cols-[130px_1fr_120px_110px]"
               >
-                {STATUS_OPTIONS.map((s) => (
-                  <option key={s} value={s}>{STATUS_LABEL[s]}</option>
-                ))}
-              </select>
-            </motion.article>
-          ))}
+                <span className="font-mono text-sm text-orange-300">{shortOrderId(order.id)}</span>
+                <div>
+                  <p className="font-semibold text-white">{order.customer_name}</p>
+                  <p className="text-sm text-zinc-400">{order.customer_phone}</p>
+                </div>
+                <span className={`h-fit rounded-full border px-2 py-1 text-center text-xs ${ORDER_STATUS_CLASS[order.status]}`}>
+                  {ORDER_STATUS_LABEL[order.status]}
+                </span>
+                <span className="text-right font-display text-xl">{formatMoney(order.total)}</span>
+              </Link>
+            ))}
+            {!loading && orders.length === 0 && (
+              <div className="grid place-items-center p-10 text-center text-zinc-500">
+                <PackageSearch className="mb-3 h-10 w-10" />
+                Todavia no hay pedidos.
+              </div>
+            )}
+          </div>
         </div>
-      )}
-    </section>
+
+        <div className="rounded-lg border border-white/10 bg-zinc-900/70 p-4">
+          <h2 className="font-display text-2xl">Alertas stock</h2>
+          <div className="mt-4 space-y-3">
+            {products
+              .filter((item) => Number(item.stock_quantity ?? 0) <= Number(item.low_stock_threshold ?? 0) || !item.available)
+              .slice(0, 8)
+              .map((item) => (
+                <div key={item.id} className="rounded-md border border-red-400/30 bg-red-500/10 p-3">
+                  <p className="font-semibold text-red-100">{item.name}</p>
+                  <p className="text-sm text-red-200/80">
+                    {item.available ? `${item.stock_quantity ?? 0} disponibles` : "Sin disponibilidad"} · minimo {item.low_stock_threshold ?? 0}
+                  </p>
+                </div>
+              ))}
+            {products.filter((item) => Number(item.stock_quantity ?? 0) <= Number(item.low_stock_threshold ?? 0) || !item.available).length === 0 && (
+              <p className="rounded-md border border-emerald-400/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">
+                Stock sin alertas criticas.
+              </p>
+            )}
+          </div>
+        </div>
+      </section>
+    </>
   );
 }

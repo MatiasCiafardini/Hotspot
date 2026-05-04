@@ -2,10 +2,15 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 
 export type CartItem = {
   id: string;
+  product_id: string;
   name: string;
   price: number;
   image_url: string | null;
   quantity: number;
+  base_ingredients: string[];
+  removed_ingredients: string[];
+  added_ingredients: string[];
+  item_notes: string;
 };
 
 type CartCtx = {
@@ -13,6 +18,7 @@ type CartCtx = {
   add: (item: Omit<CartItem, "quantity">) => void;
   remove: (id: string) => void;
   setQty: (id: string, qty: number) => void;
+  updateItem: (id: string, patch: Partial<CartItem>) => void;
   clear: () => void;
   open: boolean;
   setOpen: (o: boolean) => void;
@@ -24,22 +30,38 @@ type CartCtx = {
 const Ctx = createContext<CartCtx | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      return JSON.parse(localStorage.getItem("smash-cart") || "[]");
-    } catch {
-      return [];
-    }
-  });
+  const [items, setItems] = useState<CartItem[]>([]);
   const [open, setOpen] = useState(false);
   const [lastAddedAt, setLastAddedAt] = useState<number | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("smash-cart", JSON.stringify(items));
+    try {
+      const saved = JSON.parse(localStorage.getItem("smash-cart") || "[]") as Partial<CartItem>[];
+      setItems(
+        saved.map((item) => ({
+          id: item.id || crypto.randomUUID(),
+          product_id: item.product_id || item.id || "",
+          name: item.name || "",
+          price: Number(item.price || 0),
+          image_url: item.image_url ?? null,
+          quantity: Number(item.quantity || 1),
+          base_ingredients: item.base_ingredients || [],
+          removed_ingredients: item.removed_ingredients || [],
+          added_ingredients: item.added_ingredients || [],
+          item_notes: item.item_notes || "",
+        })),
+      );
+    } catch {
+      setItems([]);
     }
-  }, [items]);
+    setLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!loaded) return;
+    localStorage.setItem("smash-cart", JSON.stringify(items));
+  }, [items, loaded]);
 
   const add: CartCtx["add"] = (item) => {
     setItems((prev) => {
@@ -60,13 +82,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, quantity: qty } : i)));
   };
 
+  const updateItem: CartCtx["updateItem"] = (id, patch) => {
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+  };
+
   const clear = () => setItems([]);
 
   const total = useMemo(() => items.reduce((s, i) => s + i.price * i.quantity, 0), [items]);
   const count = useMemo(() => items.reduce((s, i) => s + i.quantity, 0), [items]);
 
   return (
-    <Ctx.Provider value={{ items, add, remove, setQty, clear, open, setOpen, total, count, lastAddedAt }}>
+    <Ctx.Provider value={{ items, add, remove, setQty, updateItem, clear, open, setOpen, total, count, lastAddedAt }}>
       {children}
     </Ctx.Provider>
   );
