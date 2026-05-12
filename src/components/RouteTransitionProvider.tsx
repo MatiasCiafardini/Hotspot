@@ -9,7 +9,7 @@ const WIPE_EASE = [0.76, 0, 0.24, 1] as const;
 
 type RouteTransitionContextValue = {
   active: boolean;
-  navigateWithTransition: (path: string) => Promise<void>;
+  navigateWithTransition: (path: string, options?: { resetScroll?: boolean }) => Promise<void>;
 };
 
 const RouteTransitionContext = createContext<RouteTransitionContextValue | null>(null);
@@ -33,9 +33,10 @@ export function RouteTransitionProvider({ children }: { children: ReactNode }) {
   const activeRef = useRef(false);
 
   const navigateWithTransition = useCallback(
-    async (path: string) => {
+    async (path: string, options?: { resetScroll?: boolean }) => {
       if (activeRef.current) return;
 
+      const resetScroll = options?.resetScroll ?? true;
       const nextPath = normalizePath(path);
       const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
       if (nextPath === currentPath) return;
@@ -49,8 +50,9 @@ export function RouteTransitionProvider({ children }: { children: ReactNode }) {
         transition: { duration: WIPE_DURATION_SECONDS, ease: WIPE_EASE },
       });
 
-      await navigate({ to: nextPath as any });
+      await navigate({ to: nextPath as any, resetScroll });
       await waitForPaint();
+      if (resetScroll) window.scrollTo(0, 0);
 
       await controls.start({
         clipPath: "inset(0 0 0 100%)",
@@ -116,12 +118,14 @@ export function TransitionLink({
   children,
   className,
   onClick,
+  resetScroll,
   "aria-label": ariaLabel,
 }: {
   to: string;
   children: ReactNode;
   className?: string;
   onClick?: () => void;
+  resetScroll?: boolean;
   "aria-label"?: string;
 }) {
   const { navigateWithTransition } = useRouteTransition();
@@ -136,7 +140,7 @@ export function TransitionLink({
         if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
         event.preventDefault();
         onClick?.();
-        void navigateWithTransition(to);
+        void navigateWithTransition(to, { resetScroll });
       }}
     >
       {children}

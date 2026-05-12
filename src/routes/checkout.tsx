@@ -6,7 +6,6 @@ import { useCart } from "@/lib/cart";
 import { resolveImage } from "@/lib/products";
 import { SmashButton } from "@/components/SmashButton";
 import { Sticker } from "@/components/Sticker";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { GoogleLoginButton } from "@/components/GoogleLoginButton";
 import { useRouteTransition } from "@/components/RouteTransitionProvider";
@@ -24,21 +23,40 @@ export const Route = createFileRoute("/checkout")({
 });
 
 const STEPS = ["Tus datos", "Entrega", "Confirmar"] as const;
+const DELIVERY_FEE = 5000;
 
 type CheckoutItem = ReturnType<typeof useCart>["items"][number];
 
-function buildOrderItem(orderId: string, item: CheckoutItem, includeProductId: boolean) {
-  return {
-    order_id: orderId,
-    product_id: includeProductId ? item.product_id || item.id : null,
-    product_name: item.name,
-    unit_price: item.price,
-    quantity: item.quantity,
-    base_ingredients: item.base_ingredients,
-    removed_ingredients: item.removed_ingredients,
-    added_ingredients: item.added_ingredients,
-    item_notes: item.item_notes || null,
-  };
+async function createOrder(input: {
+  customerName: string;
+  customerPhone: string;
+  deliveryMethod: "pickup" | "delivery";
+  customerAddress: string | null;
+  notes: string | null;
+  total: number;
+  items: CheckoutItem[];
+}) {
+  const response = await fetch("/api/store/orders", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({
+      ...input,
+      paymentMethod: "transferencia",
+      paymentStatus: "pending",
+      status: "pending_payment",
+    }),
+  });
+
+  if (!response.ok) {
+    try {
+      const data = await response.json();
+      throw new Error(typeof data?.error === "string" ? data.error : "No pudimos crear el pedido.");
+    } catch (error) {
+      if (error instanceof Error) throw error;
+      throw new Error("No pudimos crear el pedido.");
+    }
+  }
 }
 
 function CheckoutPage() {
@@ -58,15 +76,26 @@ function CheckoutPage() {
     address: "",
     notes: "",
   });
+  const orderTotal = total + (form.method === "delivery" ? DELIVERY_FEE : 0);
+  const storeOpen = settings.is_open === true;
 
   useEffect(() => {
-    (supabase as any)
-      .from("store_settings")
-      .select("*")
-      .limit(1)
-      .maybeSingle()
-      .then(({ data }: { data: StoreSettings | null }) => {
-        if (data) setSettings({ ...DEFAULT_SETTINGS, ...data });
+    if (!customer) return;
+    setForm((current) => ({
+      ...current,
+      name: current.name || customer.name,
+      phone: current.phone || customer.phone || "",
+    }));
+  }, [customer]);
+
+  useEffect(() => {
+    fetch("/api/store/menu", { credentials: "include" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { settings?: StoreSettings } | null) => {
+        if (data?.settings) setSettings({ ...DEFAULT_SETTINGS, ...data.settings });
+      })
+      .catch(() => {
+        setSettings(DEFAULT_SETTINGS);
       });
   }, []);
 
@@ -107,46 +136,28 @@ function CheckoutPage() {
       return;
     }
     if (transferSeconds <= 0) {
-      toast.error("El tiempo para transferir vencio. Volve al paso anterior y generamos una nueva ventana.");
+      toast.error(
+        "El tiempo para transferir vencio. Volve al paso anterior y generamos una nueva ventana.",
+      );
       return;
     }
     setSubmitting(true);
-    const { data, error } = await (supabase as any)
-      .from("orders")
-      .insert({
-        customer_id: customer.id,
-        customer_name: form.name,
-        customer_phone: form.phone,
-        customer_address: form.method === "delivery" ? form.address : null,
-        delivery_method: form.method,
-        payment_method: "transferencia",
-        payment_status: "pending",
+    try {
+      await createOrder({
+        customerName: form.name,
+        customerPhone: form.phone,
+        customerAddress: form.method === "delivery" ? form.address : null,
+        deliveryMethod: form.method,
         notes: form.notes || null,
-        status: "pending_payment",
-        total,
-      })
-      .select()
-      .single();
-
-    if (error || !data) {
-      toast.error("No pudimos crear el pedido. Probá de nuevo.");
+        total: orderTotal,
+        items,
+      });
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "No pudimos crear el pedido. Proba de nuevo.",
+      );
       setSubmitting(false);
       return;
-    }
-
-    const { error: itemsError } = await (supabase as any)
-      .from("order_items")
-      .insert(items.map((item) => buildOrderItem(data.id, item, true)));
-
-    if (itemsError) {
-      const { error: retryError } = await (supabase as any)
-        .from("order_items")
-        .insert(items.map((item) => buildOrderItem(data.id, item, false)));
-      if (retryError) {
-        toast.error("Error guardando los ítems del pedido.");
-        setSubmitting(false);
-        return;
-      }
     }
 
     setDone(true);
@@ -178,9 +189,12 @@ function CheckoutPage() {
       <section className="mx-auto max-w-2xl px-4 py-20 text-center md:px-6">
         <Sticker color="ink">Cuenta requerida</Sticker>
         <div className="mt-4 sticker-lg bg-card p-6 md:p-8">
-          <h1 className="font-display text-4xl mb-3">Para confirmar tu pedido necesitás iniciar sesión.</h1>
+          <h1 className="font-display text-4xl mb-3">
+            Para confirmar tu pedido necesitás iniciar sesión.
+          </h1>
           <p className="text-muted-foreground mb-6">
-            Podés seguir navegando y tu carrito queda guardado. Iniciá sesión o creá una cuenta para terminar el pedido.
+            Podés seguir navegando y tu carrito queda guardado. Iniciá sesión o creá una cuenta para
+            terminar el pedido.
           </p>
           <GoogleLoginButton redirectTo="/checkout" className="mx-auto mb-4 max-w-sm" />
           <div className="mb-4 flex items-center gap-3 text-xs uppercase text-muted-foreground">
@@ -202,6 +216,22 @@ function CheckoutPage() {
               Crear cuenta
             </a>
           </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (!storeOpen) {
+    return (
+      <section className="mx-auto max-w-2xl px-4 py-20 text-center md:px-6">
+        <Sticker color="ink">Local cerrado</Sticker>
+        <div className="mt-4 sticker-lg bg-card p-6 md:p-8">
+          <h1 className="font-display text-4xl mb-3">Todavia no estamos tomando pedidos.</h1>
+          <p className="text-muted-foreground mb-6">
+            El carrito queda guardado. Cuando el local inicie el dia, vas a poder confirmar tu
+            pedido.
+          </p>
+          <SmashButton onClick={() => navigateWithTransition("/menu")}>Volver al menu</SmashButton>
         </div>
       </section>
     );
@@ -310,7 +340,9 @@ function CheckoutPage() {
                       key={m}
                       onClick={() => setForm({ ...form, method: m })}
                       className={`border p-4 font-display uppercase shadow-[0_10px_20px_-18px_var(--ink)] transition-all ${
-                        form.method === m ? "border-primary bg-primary text-primary-foreground" : "border-ink bg-background"
+                        form.method === m
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-ink bg-background"
                       }`}
                     >
                       {m === "pickup" ? "Retiro" : "Delivery"}
@@ -349,37 +381,56 @@ function CheckoutPage() {
                   </div>
                   <div className="mt-4 grid gap-2 border-t border-ink/20 pt-4 sm:grid-cols-2">
                     <p className="text-sm text-muted-foreground">
-                      Importe exacto: <strong className="text-ink">{formatMoney(total)}</strong>
+                      Importe exacto:{" "}
+                      <strong className="text-ink">{formatMoney(orderTotal)}</strong>
                     </p>
                     <p className="flex items-center gap-2 text-sm text-muted-foreground sm:justify-end">
-                      <Clock className="h-4 w-4 text-primary" /> Tiempo restante: <strong className="text-ink">{transferTime}</strong>
+                      <Clock className="h-4 w-4 text-primary" /> Tiempo restante:{" "}
+                      <strong className="text-ink">{transferTime}</strong>
                     </p>
                   </div>
                   <p className="mt-3 text-xs text-muted-foreground">
-                    Cuando termines la transferencia, toca el boton de abajo. El pedido queda pendiente hasta que el local confirme el pago.
+                    Cuando termines la transferencia, toca el boton de abajo. El pedido queda
+                    pendiente hasta que el local confirme el pago.
                   </p>
                 </div>
                 <ul className="divide-y-[2px] divide-ink/20">
                   {items.map((i) => (
                     <li key={i.id} className="flex items-center gap-3 py-2">
-                      <img src={resolveImage(i.image_url)} alt="" className="h-12 w-12 border border-ink object-cover" />
+                      <img
+                        src={resolveImage(i.image_url)}
+                        alt=""
+                        className="h-12 w-12 border border-ink object-cover"
+                      />
                       <div className="flex-1">
                         <p className="font-display uppercase">{i.name}</p>
-                        <p className="text-xs text-muted-foreground">{i.quantity} × ${i.price.toFixed(2)}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {i.quantity} × ${i.price.toFixed(2)}
+                        </p>
                         {i.removed_ingredients.length > 0 && (
-                          <p className="text-xs text-muted-foreground">Sin: {i.removed_ingredients.join(", ")}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Sin: {i.removed_ingredients.join(", ")}
+                          </p>
                         )}
                       </div>
                       <span className="font-display">${(i.quantity * i.price).toFixed(2)}</span>
                     </li>
                   ))}
                 </ul>
+                {form.method === "delivery" && (
+                  <div className="flex justify-between border-t border-ink/20 pt-3">
+                    <span className="font-display text-xl">Delivery</span>
+                    <span className="font-display text-xl text-ink">
+                      {formatMoney(DELIVERY_FEE)}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between border-t border-ink pt-3">
                   <span className="font-display text-xl">Total</span>
-                  <span className="font-display text-2xl text-ink">{formatMoney(total)}</span>
+                  <span className="font-display text-2xl text-ink">{formatMoney(orderTotal)}</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  No se prepara el pedido hasta que el duenio confirme la transferencia en el panel.
+                  No se prepara el pedido hasta que el dueño confirme la transferencia en el panel.
                 </p>
               </div>
             )}

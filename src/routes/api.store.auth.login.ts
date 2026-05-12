@@ -21,11 +21,11 @@ export const Route = createFileRoute("/api/store/auth/login")({
 
         const customer = await findCustomerByEmail(parsed.data.email, DEFAULT_STORE_ID);
         if (!customer || !customer.is_active || !customer.password_hash) {
-          return unauthorized("Email o contrasena incorrectos.");
+          return unauthorized("Email o contraseña incorrectos.");
         }
 
         const valid = await verifyCustomerPassword(parsed.data.password, customer.password_hash);
-        if (!valid) return unauthorized("Email o contrasena incorrectos.");
+        if (!valid) return unauthorized("Email o contraseña incorrectos.");
 
         return customerSessionResponse(customer, request);
       },

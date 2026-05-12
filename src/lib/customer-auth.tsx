@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 
 export type Customer = {
   id: string;
@@ -27,11 +35,17 @@ type RegisterInput = {
   password: string;
 };
 
+type UpdateProfileInput = {
+  name: string;
+  phone: string;
+};
+
 type CustomerAuthContextValue = {
   customer: Customer | null;
   isLoading: boolean;
   login: (input: LoginInput) => Promise<Customer>;
   register: (input: RegisterInput) => Promise<Customer>;
+  updateProfile: (input: UpdateProfileInput) => Promise<Customer>;
   googleLogin: (credential: string) => Promise<Customer>;
   logout: () => Promise<void>;
   refreshCustomer: () => Promise<Customer | null>;
@@ -96,6 +110,13 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
     return data.customer;
   }, []);
 
+  const updateProfile = useCallback(async (input: UpdateProfileInput) => {
+    const data = await authRequest("/api/store/auth/profile", input);
+    if (!data.customer) throw new Error("No pudimos guardar tus datos.");
+    setCustomer(data.customer);
+    return data.customer;
+  }, []);
+
   const googleLogin = useCallback(async (credential: string) => {
     const data = await authRequest("/api/store/auth/google", { credential });
     if (!data.customer) throw new Error("No pudimos iniciar sesion con Google.");
@@ -109,8 +130,17 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ customer, isLoading, login, register, googleLogin, logout, refreshCustomer }),
-    [customer, googleLogin, isLoading, login, logout, refreshCustomer, register],
+    () => ({
+      customer,
+      isLoading,
+      login,
+      register,
+      updateProfile,
+      googleLogin,
+      logout,
+      refreshCustomer,
+    }),
+    [customer, googleLogin, isLoading, login, logout, refreshCustomer, register, updateProfile],
   );
 
   return <CustomerAuthContext.Provider value={value}>{children}</CustomerAuthContext.Provider>;

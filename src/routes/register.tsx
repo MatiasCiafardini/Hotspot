@@ -27,7 +27,13 @@ function RegisterPage() {
   const { customer, isLoading, register } = useCustomerAuth();
   const navigate = useNavigate();
   const redirect = useMemo(getRedirect, []);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", confirmPassword: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    confirmPassword: "",
+  });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +45,7 @@ function RegisterPage() {
     event.preventDefault();
     setError(null);
     if (form.password !== form.confirmPassword) {
-      setError("Las contrasenas no coinciden.");
+      setError("Las contraseñas no coinciden.");
       return;
     }
 
@@ -66,7 +72,9 @@ function RegisterPage() {
         <UserPlus className="h-8 w-8" />
       </div>
       <h1 className="mb-2 text-center font-display text-4xl">Crear cuenta</h1>
-      <p className="mb-6 text-center text-sm text-muted-foreground">Guarda tus datos y confirma pedidos mas rapido.</p>
+      <p className="mb-6 text-center text-sm text-muted-foreground">
+        Guarda tus datos y confirma pedidos mas rapido.
+      </p>
 
       <form onSubmit={submit} className="w-full sticker-lg space-y-3 bg-card p-6">
         <GoogleLoginButton redirectTo={redirect} className="w-full" text="signup_with" />
@@ -103,7 +111,7 @@ function RegisterPage() {
         />
         <input
           className="w-full border border-ink bg-background px-4 py-3 font-body focus:border-primary focus:outline-none"
-          placeholder="Contrasena"
+          placeholder="contraseña"
           type="password"
           autoComplete="new-password"
           required
@@ -113,7 +121,7 @@ function RegisterPage() {
         />
         <input
           className="w-full border border-ink bg-background px-4 py-3 font-body focus:border-primary focus:outline-none"
-          placeholder="Confirmar contrasena"
+          placeholder="Confirmar contraseña"
           type="password"
           autoComplete="new-password"
           required
@@ -121,13 +129,18 @@ function RegisterPage() {
           value={form.confirmPassword}
           onChange={(event) => setForm({ ...form, confirmPassword: event.target.value })}
         />
-        {error && <p className="border border-red-500 bg-red-500/10 p-3 text-sm text-red-700">{error}</p>}
+        {error && (
+          <p className="border border-red-500 bg-red-500/10 p-3 text-sm text-red-700">{error}</p>
+        )}
         <SmashButton type="submit" className="w-full" glow disabled={submitting || isLoading}>
           {submitting ? "Creando..." : "Crear cuenta"}
         </SmashButton>
         <p className="pt-2 text-center text-xs text-muted-foreground">
           Ya tenes cuenta?{" "}
-          <TransitionLink to={`/login?redirect=${encodeURIComponent(redirect)}`} className="text-ink hover:text-primary">
+          <TransitionLink
+            to={`/login?redirect=${encodeURIComponent(redirect)}`}
+            className="text-ink hover:text-primary"
+          >
             Ingresar
           </TransitionLink>
         </p>

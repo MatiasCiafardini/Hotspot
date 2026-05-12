@@ -7,6 +7,7 @@ import fries from "@/assets/side-fries.jpg";
 import rings from "@/assets/side-rings.jpg";
 import shake from "@/assets/drink-shake.jpg";
 import cola from "@/assets/drink-cola.jpg";
+import { REAL_MENU_CATEGORIES } from "@/lib/real-menu";
 
 const map: Record<string, string> = {
   "/src/assets/burger-classic.jpg": classic,
@@ -30,13 +31,17 @@ export type ProductCategory = {
   label: string;
   sort_order?: number | null;
   active?: boolean | null;
+  menu_shifts?: MenuShift[] | null;
 };
 
-export const DEFAULT_CATEGORIES: ProductCategory[] = [
-  { key: "burgers", label: "Hamburguesas" },
-  { key: "sides", label: "Sides" },
-  { key: "drinks", label: "Bebidas" },
-];
+export type MenuShift = "lunch" | "dinner";
+
+export const MENU_SHIFT_LABEL: Record<MenuShift, string> = {
+  lunch: "Mediodia",
+  dinner: "Cena",
+};
+
+export const DEFAULT_CATEGORIES: ProductCategory[] = [...REAL_MENU_CATEGORIES];
 
 export const CATEGORIES = DEFAULT_CATEGORIES;
 
@@ -55,3 +60,14 @@ export type Product = {
   low_stock_threshold?: number | null;
   ingredients?: string[] | null;
 };
+
+export function categoryAvailableForShift(
+  category: ProductCategory | undefined,
+  shift: MenuShift | null | undefined,
+) {
+  if (!shift) return false;
+  const shifts = category?.menu_shifts?.length
+    ? category.menu_shifts
+    : (["lunch", "dinner"] as MenuShift[]);
+  return shifts.includes(shift);
+}

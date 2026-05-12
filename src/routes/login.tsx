@@ -57,7 +57,9 @@ function LoginPage() {
         <Lock className="h-8 w-8" />
       </div>
       <h1 className="mb-2 text-center font-display text-4xl">Ingresar</h1>
-      <p className="mb-6 text-center text-sm text-muted-foreground">Entra a tu cuenta para continuar tu pedido.</p>
+      <p className="mb-6 text-center text-sm text-muted-foreground">
+        Entra a tu cuenta para continuar tu pedido.
+      </p>
 
       <form onSubmit={submit} className="w-full sticker-lg space-y-3 bg-card p-6">
         <GoogleLoginButton redirectTo={redirect} className="w-full" />
@@ -77,23 +79,28 @@ function LoginPage() {
         />
         <input
           className="w-full border border-ink bg-background px-4 py-3 font-body focus:border-primary focus:outline-none"
-          placeholder="Contrasena"
+          placeholder="contraseña"
           type="password"
           autoComplete="current-password"
           required
           value={password}
           onChange={(event) => setPassword(event.target.value)}
         />
-        {error && <p className="border border-red-500 bg-red-500/10 p-3 text-sm text-red-700">{error}</p>}
+        {error && (
+          <p className="border border-red-500 bg-red-500/10 p-3 text-sm text-red-700">{error}</p>
+        )}
         <SmashButton type="submit" className="w-full" glow disabled={submitting || isLoading}>
           {submitting ? "Ingresando..." : "Iniciar sesion"}
         </SmashButton>
         <div className="grid gap-2 pt-2 text-center text-xs text-muted-foreground sm:grid-cols-2">
-          <TransitionLink to={`/register?redirect=${encodeURIComponent(redirect)}`} className="hover:text-primary">
+          <TransitionLink
+            to={`/register?redirect=${encodeURIComponent(redirect)}`}
+            className="hover:text-primary"
+          >
             Crear cuenta
           </TransitionLink>
           <TransitionLink to="/forgot-password" className="hover:text-primary">
-            Olvide mi contrasena
+            Olvide mi contraseña
           </TransitionLink>
         </div>
       </form>

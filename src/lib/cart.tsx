@@ -15,7 +15,7 @@ export type CartItem = {
 
 type CartCtx = {
   items: CartItem[];
-  add: (item: Omit<CartItem, "quantity">) => void;
+  add: (item: Omit<CartItem, "quantity"> & { quantity?: number }) => void;
   remove: (id: string) => void;
   setQty: (id: string, qty: number) => void;
   updateItem: (id: string, patch: Partial<CartItem>) => void;
@@ -73,9 +73,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems((prev) => {
       const existing = prev.find((i) => i.id === item.id);
       if (existing) {
-        return prev.map((i) => (i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i));
+        return prev.map((i) => (i.id === item.id ? { ...i, quantity: i.quantity + (item.quantity ?? 1) } : i));
       }
-      return [...prev, { ...item, quantity: 1 }];
+      return [...prev, { ...item, quantity: item.quantity ?? 1 }];
     });
     setLastAddedAt(Date.now());
   };

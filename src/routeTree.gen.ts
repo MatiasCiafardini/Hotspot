@@ -10,10 +10,12 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SobreRouteImport } from './routes/sobre'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as MiCuentaRouteImport } from './routes/mi-cuenta'
 import { Route as MenuRouteImport } from './routes/menu'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as ContactoRouteImport } from './routes/contacto'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -24,15 +26,30 @@ import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminHistorialRouteImport } from './routes/admin.historial'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminConfiguracionRouteImport } from './routes/admin.configuracion'
+import { Route as ApiStoreOrdersRouteImport } from './routes/api.store.orders'
+import { Route as ApiStoreMenuRouteImport } from './routes/api.store.menu'
+import { Route as ApiAdminDayRouteImport } from './routes/api.admin.day'
+import { Route as ApiAdminConfigRouteImport } from './routes/api.admin.config'
+import { Route as ApiAdminCategoriesRouteImport } from './routes/api.admin.categories'
+import { Route as ApiStoreAuthResetPasswordRouteImport } from './routes/api.store.auth.reset-password'
 import { Route as ApiStoreAuthRegisterRouteImport } from './routes/api.store.auth.register'
+import { Route as ApiStoreAuthProfileRouteImport } from './routes/api.store.auth.profile'
+import { Route as ApiStoreAuthOrdersRouteImport } from './routes/api.store.auth.orders'
 import { Route as ApiStoreAuthMeRouteImport } from './routes/api.store.auth.me'
 import { Route as ApiStoreAuthLogoutRouteImport } from './routes/api.store.auth.logout'
 import { Route as ApiStoreAuthLoginRouteImport } from './routes/api.store.auth.login'
 import { Route as ApiStoreAuthGoogleRouteImport } from './routes/api.store.auth.google'
+import { Route as ApiStoreAuthForgotPasswordRouteImport } from './routes/api.store.auth.forgot-password'
+import { Route as ApiAdminStockSyncBurgersRouteImport } from './routes/api.admin.stock.sync-burgers'
 
 const SobreRoute = SobreRouteImport.update({
   id: '/sobre',
   path: '/sobre',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RegisterRoute = RegisterRouteImport.update({
@@ -53,6 +70,11 @@ const MenuRoute = MenuRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactoRoute = ContactoRouteImport.update({
@@ -105,9 +127,50 @@ const AdminConfiguracionRoute = AdminConfiguracionRouteImport.update({
   path: '/configuracion',
   getParentRoute: () => AdminRoute,
 } as any)
+const ApiStoreOrdersRoute = ApiStoreOrdersRouteImport.update({
+  id: '/api/store/orders',
+  path: '/api/store/orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStoreMenuRoute = ApiStoreMenuRouteImport.update({
+  id: '/api/store/menu',
+  path: '/api/store/menu',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminDayRoute = ApiAdminDayRouteImport.update({
+  id: '/api/admin/day',
+  path: '/api/admin/day',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminConfigRoute = ApiAdminConfigRouteImport.update({
+  id: '/api/admin/config',
+  path: '/api/admin/config',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminCategoriesRoute = ApiAdminCategoriesRouteImport.update({
+  id: '/api/admin/categories',
+  path: '/api/admin/categories',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStoreAuthResetPasswordRoute =
+  ApiStoreAuthResetPasswordRouteImport.update({
+    id: '/api/store/auth/reset-password',
+    path: '/api/store/auth/reset-password',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiStoreAuthRegisterRoute = ApiStoreAuthRegisterRouteImport.update({
   id: '/api/store/auth/register',
   path: '/api/store/auth/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStoreAuthProfileRoute = ApiStoreAuthProfileRouteImport.update({
+  id: '/api/store/auth/profile',
+  path: '/api/store/auth/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStoreAuthOrdersRoute = ApiStoreAuthOrdersRouteImport.update({
+  id: '/api/store/auth/orders',
+  path: '/api/store/auth/orders',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiStoreAuthMeRoute = ApiStoreAuthMeRouteImport.update({
@@ -130,16 +193,30 @@ const ApiStoreAuthGoogleRoute = ApiStoreAuthGoogleRouteImport.update({
   path: '/api/store/auth/google',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStoreAuthForgotPasswordRoute =
+  ApiStoreAuthForgotPasswordRouteImport.update({
+    id: '/api/store/auth/forgot-password',
+    path: '/api/store/auth/forgot-password',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminStockSyncBurgersRoute =
+  ApiAdminStockSyncBurgersRouteImport.update({
+    id: '/api/admin/stock/sync-burgers',
+    path: '/api/admin/stock/sync-burgers',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/checkout': typeof CheckoutRoute
   '/contacto': typeof ContactoRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
   '/mi-cuenta': typeof MiCuentaRoute
   '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sobre': typeof SobreRoute
   '/admin/configuracion': typeof AdminConfiguracionRoute
   '/admin/dashboard': typeof AdminDashboardRoute
@@ -147,21 +224,33 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/productos': typeof AdminProductosRoute
   '/admin/stock': typeof AdminStockRoute
+  '/api/admin/categories': typeof ApiAdminCategoriesRoute
+  '/api/admin/config': typeof ApiAdminConfigRoute
+  '/api/admin/day': typeof ApiAdminDayRoute
+  '/api/store/menu': typeof ApiStoreMenuRoute
+  '/api/store/orders': typeof ApiStoreOrdersRoute
+  '/api/admin/stock/sync-burgers': typeof ApiAdminStockSyncBurgersRoute
+  '/api/store/auth/forgot-password': typeof ApiStoreAuthForgotPasswordRoute
   '/api/store/auth/google': typeof ApiStoreAuthGoogleRoute
   '/api/store/auth/login': typeof ApiStoreAuthLoginRoute
   '/api/store/auth/logout': typeof ApiStoreAuthLogoutRoute
   '/api/store/auth/me': typeof ApiStoreAuthMeRoute
+  '/api/store/auth/orders': typeof ApiStoreAuthOrdersRoute
+  '/api/store/auth/profile': typeof ApiStoreAuthProfileRoute
   '/api/store/auth/register': typeof ApiStoreAuthRegisterRoute
+  '/api/store/auth/reset-password': typeof ApiStoreAuthResetPasswordRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/checkout': typeof CheckoutRoute
   '/contacto': typeof ContactoRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
   '/mi-cuenta': typeof MiCuentaRoute
   '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sobre': typeof SobreRoute
   '/admin/configuracion': typeof AdminConfiguracionRoute
   '/admin/dashboard': typeof AdminDashboardRoute
@@ -169,11 +258,21 @@ export interface FileRoutesByTo {
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/productos': typeof AdminProductosRoute
   '/admin/stock': typeof AdminStockRoute
+  '/api/admin/categories': typeof ApiAdminCategoriesRoute
+  '/api/admin/config': typeof ApiAdminConfigRoute
+  '/api/admin/day': typeof ApiAdminDayRoute
+  '/api/store/menu': typeof ApiStoreMenuRoute
+  '/api/store/orders': typeof ApiStoreOrdersRoute
+  '/api/admin/stock/sync-burgers': typeof ApiAdminStockSyncBurgersRoute
+  '/api/store/auth/forgot-password': typeof ApiStoreAuthForgotPasswordRoute
   '/api/store/auth/google': typeof ApiStoreAuthGoogleRoute
   '/api/store/auth/login': typeof ApiStoreAuthLoginRoute
   '/api/store/auth/logout': typeof ApiStoreAuthLogoutRoute
   '/api/store/auth/me': typeof ApiStoreAuthMeRoute
+  '/api/store/auth/orders': typeof ApiStoreAuthOrdersRoute
+  '/api/store/auth/profile': typeof ApiStoreAuthProfileRoute
   '/api/store/auth/register': typeof ApiStoreAuthRegisterRoute
+  '/api/store/auth/reset-password': typeof ApiStoreAuthResetPasswordRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -181,10 +280,12 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/checkout': typeof CheckoutRoute
   '/contacto': typeof ContactoRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/menu': typeof MenuRoute
   '/mi-cuenta': typeof MiCuentaRoute
   '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sobre': typeof SobreRoute
   '/admin/configuracion': typeof AdminConfiguracionRoute
   '/admin/dashboard': typeof AdminDashboardRoute
@@ -192,11 +293,21 @@ export interface FileRoutesById {
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/productos': typeof AdminProductosRoute
   '/admin/stock': typeof AdminStockRoute
+  '/api/admin/categories': typeof ApiAdminCategoriesRoute
+  '/api/admin/config': typeof ApiAdminConfigRoute
+  '/api/admin/day': typeof ApiAdminDayRoute
+  '/api/store/menu': typeof ApiStoreMenuRoute
+  '/api/store/orders': typeof ApiStoreOrdersRoute
+  '/api/admin/stock/sync-burgers': typeof ApiAdminStockSyncBurgersRoute
+  '/api/store/auth/forgot-password': typeof ApiStoreAuthForgotPasswordRoute
   '/api/store/auth/google': typeof ApiStoreAuthGoogleRoute
   '/api/store/auth/login': typeof ApiStoreAuthLoginRoute
   '/api/store/auth/logout': typeof ApiStoreAuthLogoutRoute
   '/api/store/auth/me': typeof ApiStoreAuthMeRoute
+  '/api/store/auth/orders': typeof ApiStoreAuthOrdersRoute
+  '/api/store/auth/profile': typeof ApiStoreAuthProfileRoute
   '/api/store/auth/register': typeof ApiStoreAuthRegisterRoute
+  '/api/store/auth/reset-password': typeof ApiStoreAuthResetPasswordRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -205,10 +316,12 @@ export interface FileRouteTypes {
     | '/admin'
     | '/checkout'
     | '/contacto'
+    | '/forgot-password'
     | '/login'
     | '/menu'
     | '/mi-cuenta'
     | '/register'
+    | '/reset-password'
     | '/sobre'
     | '/admin/configuracion'
     | '/admin/dashboard'
@@ -216,21 +329,33 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/productos'
     | '/admin/stock'
+    | '/api/admin/categories'
+    | '/api/admin/config'
+    | '/api/admin/day'
+    | '/api/store/menu'
+    | '/api/store/orders'
+    | '/api/admin/stock/sync-burgers'
+    | '/api/store/auth/forgot-password'
     | '/api/store/auth/google'
     | '/api/store/auth/login'
     | '/api/store/auth/logout'
     | '/api/store/auth/me'
+    | '/api/store/auth/orders'
+    | '/api/store/auth/profile'
     | '/api/store/auth/register'
+    | '/api/store/auth/reset-password'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin'
     | '/checkout'
     | '/contacto'
+    | '/forgot-password'
     | '/login'
     | '/menu'
     | '/mi-cuenta'
     | '/register'
+    | '/reset-password'
     | '/sobre'
     | '/admin/configuracion'
     | '/admin/dashboard'
@@ -238,21 +363,33 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/productos'
     | '/admin/stock'
+    | '/api/admin/categories'
+    | '/api/admin/config'
+    | '/api/admin/day'
+    | '/api/store/menu'
+    | '/api/store/orders'
+    | '/api/admin/stock/sync-burgers'
+    | '/api/store/auth/forgot-password'
     | '/api/store/auth/google'
     | '/api/store/auth/login'
     | '/api/store/auth/logout'
     | '/api/store/auth/me'
+    | '/api/store/auth/orders'
+    | '/api/store/auth/profile'
     | '/api/store/auth/register'
+    | '/api/store/auth/reset-password'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/checkout'
     | '/contacto'
+    | '/forgot-password'
     | '/login'
     | '/menu'
     | '/mi-cuenta'
     | '/register'
+    | '/reset-password'
     | '/sobre'
     | '/admin/configuracion'
     | '/admin/dashboard'
@@ -260,11 +397,21 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/productos'
     | '/admin/stock'
+    | '/api/admin/categories'
+    | '/api/admin/config'
+    | '/api/admin/day'
+    | '/api/store/menu'
+    | '/api/store/orders'
+    | '/api/admin/stock/sync-burgers'
+    | '/api/store/auth/forgot-password'
     | '/api/store/auth/google'
     | '/api/store/auth/login'
     | '/api/store/auth/logout'
     | '/api/store/auth/me'
+    | '/api/store/auth/orders'
+    | '/api/store/auth/profile'
     | '/api/store/auth/register'
+    | '/api/store/auth/reset-password'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -272,16 +419,28 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   CheckoutRoute: typeof CheckoutRoute
   ContactoRoute: typeof ContactoRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   MenuRoute: typeof MenuRoute
   MiCuentaRoute: typeof MiCuentaRoute
   RegisterRoute: typeof RegisterRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SobreRoute: typeof SobreRoute
+  ApiAdminCategoriesRoute: typeof ApiAdminCategoriesRoute
+  ApiAdminConfigRoute: typeof ApiAdminConfigRoute
+  ApiAdminDayRoute: typeof ApiAdminDayRoute
+  ApiStoreMenuRoute: typeof ApiStoreMenuRoute
+  ApiStoreOrdersRoute: typeof ApiStoreOrdersRoute
+  ApiAdminStockSyncBurgersRoute: typeof ApiAdminStockSyncBurgersRoute
+  ApiStoreAuthForgotPasswordRoute: typeof ApiStoreAuthForgotPasswordRoute
   ApiStoreAuthGoogleRoute: typeof ApiStoreAuthGoogleRoute
   ApiStoreAuthLoginRoute: typeof ApiStoreAuthLoginRoute
   ApiStoreAuthLogoutRoute: typeof ApiStoreAuthLogoutRoute
   ApiStoreAuthMeRoute: typeof ApiStoreAuthMeRoute
+  ApiStoreAuthOrdersRoute: typeof ApiStoreAuthOrdersRoute
+  ApiStoreAuthProfileRoute: typeof ApiStoreAuthProfileRoute
   ApiStoreAuthRegisterRoute: typeof ApiStoreAuthRegisterRoute
+  ApiStoreAuthResetPasswordRoute: typeof ApiStoreAuthResetPasswordRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -291,6 +450,13 @@ declare module '@tanstack/react-router' {
       path: '/sobre'
       fullPath: '/sobre'
       preLoaderRoute: typeof SobreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/register': {
@@ -319,6 +485,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contacto': {
@@ -391,11 +564,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminConfiguracionRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/api/store/orders': {
+      id: '/api/store/orders'
+      path: '/api/store/orders'
+      fullPath: '/api/store/orders'
+      preLoaderRoute: typeof ApiStoreOrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/store/menu': {
+      id: '/api/store/menu'
+      path: '/api/store/menu'
+      fullPath: '/api/store/menu'
+      preLoaderRoute: typeof ApiStoreMenuRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/day': {
+      id: '/api/admin/day'
+      path: '/api/admin/day'
+      fullPath: '/api/admin/day'
+      preLoaderRoute: typeof ApiAdminDayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/config': {
+      id: '/api/admin/config'
+      path: '/api/admin/config'
+      fullPath: '/api/admin/config'
+      preLoaderRoute: typeof ApiAdminConfigRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/categories': {
+      id: '/api/admin/categories'
+      path: '/api/admin/categories'
+      fullPath: '/api/admin/categories'
+      preLoaderRoute: typeof ApiAdminCategoriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/store/auth/reset-password': {
+      id: '/api/store/auth/reset-password'
+      path: '/api/store/auth/reset-password'
+      fullPath: '/api/store/auth/reset-password'
+      preLoaderRoute: typeof ApiStoreAuthResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/store/auth/register': {
       id: '/api/store/auth/register'
       path: '/api/store/auth/register'
       fullPath: '/api/store/auth/register'
       preLoaderRoute: typeof ApiStoreAuthRegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/store/auth/profile': {
+      id: '/api/store/auth/profile'
+      path: '/api/store/auth/profile'
+      fullPath: '/api/store/auth/profile'
+      preLoaderRoute: typeof ApiStoreAuthProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/store/auth/orders': {
+      id: '/api/store/auth/orders'
+      path: '/api/store/auth/orders'
+      fullPath: '/api/store/auth/orders'
+      preLoaderRoute: typeof ApiStoreAuthOrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/store/auth/me': {
@@ -426,6 +655,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiStoreAuthGoogleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/store/auth/forgot-password': {
+      id: '/api/store/auth/forgot-password'
+      path: '/api/store/auth/forgot-password'
+      fullPath: '/api/store/auth/forgot-password'
+      preLoaderRoute: typeof ApiStoreAuthForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/stock/sync-burgers': {
+      id: '/api/admin/stock/sync-burgers'
+      path: '/api/admin/stock/sync-burgers'
+      fullPath: '/api/admin/stock/sync-burgers'
+      preLoaderRoute: typeof ApiAdminStockSyncBurgersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -454,16 +697,28 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   CheckoutRoute: CheckoutRoute,
   ContactoRoute: ContactoRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   MenuRoute: MenuRoute,
   MiCuentaRoute: MiCuentaRoute,
   RegisterRoute: RegisterRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SobreRoute: SobreRoute,
+  ApiAdminCategoriesRoute: ApiAdminCategoriesRoute,
+  ApiAdminConfigRoute: ApiAdminConfigRoute,
+  ApiAdminDayRoute: ApiAdminDayRoute,
+  ApiStoreMenuRoute: ApiStoreMenuRoute,
+  ApiStoreOrdersRoute: ApiStoreOrdersRoute,
+  ApiAdminStockSyncBurgersRoute: ApiAdminStockSyncBurgersRoute,
+  ApiStoreAuthForgotPasswordRoute: ApiStoreAuthForgotPasswordRoute,
   ApiStoreAuthGoogleRoute: ApiStoreAuthGoogleRoute,
   ApiStoreAuthLoginRoute: ApiStoreAuthLoginRoute,
   ApiStoreAuthLogoutRoute: ApiStoreAuthLogoutRoute,
   ApiStoreAuthMeRoute: ApiStoreAuthMeRoute,
+  ApiStoreAuthOrdersRoute: ApiStoreAuthOrdersRoute,
+  ApiStoreAuthProfileRoute: ApiStoreAuthProfileRoute,
   ApiStoreAuthRegisterRoute: ApiStoreAuthRegisterRoute,
+  ApiStoreAuthResetPasswordRoute: ApiStoreAuthResetPasswordRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

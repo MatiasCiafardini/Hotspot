@@ -6,7 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { SmashButton } from "@/components/SmashButton";
 import { Sticker } from "@/components/Sticker";
 import { toast } from "sonner";
-import { TransitionLink } from "@/components/RouteTransitionProvider";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 
 export const Route = createFileRoute("/admin")({
@@ -245,9 +244,14 @@ function AdminLogin() {
         )}
       </form>
 
-      <TransitionLink to="/" className="mt-6 text-xs text-muted-foreground hover:text-primary">
+      <a
+        href="/"
+        data-transition-handled="true"
+        onClick={() => window.scrollTo(0, 0)}
+        className="mt-6 text-xs text-muted-foreground hover:text-primary"
+      >
         ← volver al sitio
-      </TransitionLink>
+      </a>
     </section>
   );
 }

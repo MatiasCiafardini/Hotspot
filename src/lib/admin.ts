@@ -1,4 +1,6 @@
 import type { Product } from "@/lib/products";
+import type { MenuShift } from "@/lib/products";
+import logoHotspotUrl from "@/assets/logo_hotspot.png?url";
 
 export type OrderStatus =
   | "pending"
@@ -64,6 +66,28 @@ export type StoreSettings = {
   accepts_transfer: boolean;
   automatic_message: string;
   print_width_mm: number;
+  is_open?: boolean;
+  current_day_started_at?: string | null;
+  current_menu_shift?: MenuShift;
+};
+
+export type CashClosure = {
+  id: string;
+  store_id?: number;
+  opened_at: string;
+  closed_at: string;
+  menu_shift: MenuShift;
+  orders_count: number;
+  chargeable_orders_count: number;
+  rejected_orders_count: number;
+  total_sales: number;
+  cash_total: number;
+  transfer_approved_total: number;
+  transfer_pending_total: number;
+  order_ids?: string[];
+  orders_snapshot?: AdminOrder[];
+  settings_snapshot?: StoreSettings;
+  created_at?: string;
 };
 
 export const ORDER_STATUS_OPTIONS: OrderStatus[] = [
@@ -110,7 +134,7 @@ export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
 
 export const DEFAULT_SETTINGS: StoreSettings = {
   store_name: "Hotspot",
-  logo_url: "/src/assets/logo_hotspot.png",
+  logo_url: logoHotspotUrl,
   hours: "Todos los dias de 19:00 a 00:00",
   contact_phone: "+54 9 11 0000-0000",
   address: "Direccion del local",
@@ -119,7 +143,10 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   accepts_cash: true,
   accepts_transfer: true,
   automatic_message: "Recibimos tu pedido. Te avisamos cuando este confirmado.",
-  print_width_mm: 80,
+  print_width_mm: 58,
+  is_open: false,
+  current_day_started_at: null,
+  current_menu_shift: "dinner",
 };
 
 export const DEFAULT_INGREDIENTS: Record<string, string[]> = {
@@ -129,7 +156,9 @@ export const DEFAULT_INGREDIENTS: Record<string, string[]> = {
 };
 
 export function productIngredients(product: Pick<Product, "category" | "ingredients">) {
-  return product.ingredients?.length ? product.ingredients : DEFAULT_INGREDIENTS[product.category] ?? [];
+  return product.ingredients?.length
+    ? product.ingredients
+    : (DEFAULT_INGREDIENTS[product.category] ?? []);
 }
 
 export function formatMoney(value: number | string) {
@@ -152,7 +181,10 @@ function normalizeWhatsAppPhone(value: string) {
   return digits;
 }
 
-export function buildOrderConfirmedWhatsAppUrl(order: AdminOrder, settings: StoreSettings = DEFAULT_SETTINGS) {
+export function buildOrderConfirmedWhatsAppUrl(
+  order: AdminOrder,
+  settings: StoreSettings = DEFAULT_SETTINGS,
+) {
   const phone = normalizeWhatsAppPhone(order.customer_phone);
   if (!phone) return null;
 
@@ -190,6 +222,19 @@ function wrapLine(line: string, limit = 34) {
   return lines;
 }
 
+function getPrintLogoUrl(settings: StoreSettings) {
+  const logoUrl = settings.logo_url?.trim();
+  if (!logoUrl || logoUrl === "/src/assets/logo_hotspot.png") return logoHotspotUrl;
+  return logoUrl;
+}
+
+function escapeHtml(value: string) {
+  return value.replace(
+    /[<>&"]/g,
+    (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" })[c]!,
+  );
+}
+
 export function buildComandaLines(order: AdminOrder, settings: StoreSettings = DEFAULT_SETTINGS) {
   const lines: string[] = [
     settings.store_name.toUpperCase(),
@@ -224,7 +269,10 @@ export function downloadComandaPdf(order: AdminOrder, settings: StoreSettings = 
   const lineHeight = 12;
   const pageHeight = Math.max(360, 42 + lines.length * lineHeight);
   const content = lines
-    .map((line, index) => `BT /F1 9 Tf 12 ${pageHeight - 24 - index * lineHeight} Td (${escapePdfText(line)}) Tj ET`)
+    .map(
+      (line, index) =>
+        `BT /F1 9 Tf 12 ${pageHeight - 24 - index * lineHeight} Td (${escapePdfText(line)}) Tj ET`,
+    )
     .join("\n");
   const objects = [
     "<< /Type /Catalog /Pages 2 0 R >>",
@@ -255,24 +303,181 @@ export function downloadComandaPdf(order: AdminOrder, settings: StoreSettings = 
   URL.revokeObjectURL(url);
 }
 
-export function printComanda(order: AdminOrder, settings: StoreSettings = DEFAULT_SETTINGS) {
+function buildComandaHtml(order: AdminOrder, settings: StoreSettings = DEFAULT_SETTINGS) {
   const lines = buildComandaLines(order, settings);
-  const win = window.open("", "_blank", "width=360,height=640");
-  if (!win) return;
-  win.document.write(`
+  const printWidthMm = Math.min(
+    58,
+    Math.max(48, Number(settings.print_width_mm) || DEFAULT_SETTINGS.print_width_mm),
+  );
+  const logoUrl = new URL(getPrintLogoUrl(settings), window.location.origin).href;
+  const ticketText = lines.map(escapeHtml).join("\n");
+
+  return `
     <html>
       <head>
         <title>Comanda ${shortOrderId(order.id)}</title>
         <style>
-          @page { size: ${settings.print_width_mm}mm auto; margin: 4mm; }
-          body { margin: 0; font-family: Courier, monospace; color: #000; background: #fff; font-size: 11px; }
-          pre { white-space: pre-wrap; margin: 0; line-height: 1.35; }
+          @page { margin: 0; }
+          html, body { margin: 0; min-height: 0; }
+          body {
+            box-sizing: border-box;
+            font-family: Courier, monospace;
+            color: #000;
+            background: #fff;
+            font-size: 11px;
+          }
+          .ticket {
+            box-sizing: border-box;
+            width: ${printWidthMm}mm;
+            padding: 4mm;
+          }
+          .logo {
+            display: block;
+            width: 28mm;
+            max-width: 100%;
+            height: auto;
+            margin: 0 auto 3mm;
+            filter: grayscale(1) contrast(1.2);
+          }
+          pre { white-space: pre-wrap; margin: 0; line-height: 1.35; overflow: visible; }
+          @media print {
+            body { width: ${printWidthMm}mm; }
+          }
         </style>
       </head>
-      <body><pre>${lines.map((line) => line.replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" })[c]!)).join("\n")}</pre></body>
+      <body>
+        <div class="ticket">
+          <img class="logo" src="${escapeHtml(logoUrl)}" alt="Hotspot" />
+          <pre>${ticketText}</pre>
+        </div>
+      </body>
     </html>
-  `);
+  `;
+}
+
+function printWithBrowserDialog(html: string) {
+  const win = window.open("", "_blank", "width=360,height=640");
+  if (!win) return;
+  win.document.write(html);
   win.document.close();
   win.focus();
-  win.print();
+  const logo = win.document.querySelector("img");
+  const print = () => window.setTimeout(() => win.print(), 150);
+  if (logo && !logo.complete) {
+    logo.addEventListener("load", print, { once: true });
+    logo.addEventListener("error", print, { once: true });
+  } else {
+    print();
+  }
+}
+
+export function printComanda(order: AdminOrder, settings: StoreSettings = DEFAULT_SETTINGS) {
+  const html = buildComandaHtml(order, settings);
+  printWithBrowserDialog(html);
+}
+
+export type CashSummary = {
+  openedAt: string;
+  closedAt: string;
+  orders: AdminOrder[];
+  settings: StoreSettings;
+};
+
+export function deriveCashSummaryStats(orders: AdminOrder[]) {
+  const validOrders = orders.filter((order) => !["rejected", "cancelled"].includes(order.status));
+  const rejectedOrders = orders.filter((order) => ["rejected", "cancelled"].includes(order.status));
+  const approvedTransfer = validOrders
+    .filter(
+      (order) => order.payment_method === "transferencia" && order.payment_status === "approved",
+    )
+    .reduce((sum, order) => sum + Number(order.total), 0);
+  const pendingTransfer = validOrders
+    .filter(
+      (order) => order.payment_method === "transferencia" && order.payment_status !== "approved",
+    )
+    .reduce((sum, order) => sum + Number(order.total), 0);
+  const cash = validOrders
+    .filter((order) => order.payment_method === "efectivo")
+    .reduce((sum, order) => sum + Number(order.total), 0);
+  const total = validOrders.reduce((sum, order) => sum + Number(order.total), 0);
+
+  return {
+    ordersCount: orders.length,
+    chargeableOrdersCount: validOrders.length,
+    rejectedOrdersCount: rejectedOrders.length,
+    approvedTransfer,
+    pendingTransfer,
+    cash,
+    total,
+  };
+}
+
+export function buildCashSummaryLines({ openedAt, closedAt, orders, settings }: CashSummary) {
+  const stats = deriveCashSummaryStats(orders);
+  const validOrders = orders.filter((order) => !["rejected", "cancelled"].includes(order.status));
+
+  return [
+    settings.store_name.toUpperCase(),
+    "CIERRE DE CAJA",
+    "------------------------------",
+    `Apertura ${formatDateTime(openedAt)}`,
+    `Cierre ${formatDateTime(closedAt)}`,
+    `Turno ${settings.current_menu_shift === "lunch" ? "Mediodia" : "Cena"}`,
+    "------------------------------",
+    `Pedidos totales ${stats.ordersCount}`,
+    `Pedidos cobrables ${stats.chargeableOrdersCount}`,
+    `Rechazados/cancelados ${stats.rejectedOrdersCount}`,
+    "------------------------------",
+    `Total vendido ${formatMoney(stats.total)}`,
+    `Transfer aprobado ${formatMoney(stats.approvedTransfer)}`,
+    `Transfer pendiente ${formatMoney(stats.pendingTransfer)}`,
+    `Efectivo ${formatMoney(stats.cash)}`,
+    "------------------------------",
+    ...validOrders.map(
+      (order) =>
+        `${shortOrderId(order.id)} ${formatMoney(order.total)} ${ORDER_STATUS_LABEL[order.status]}`,
+    ),
+  ].flatMap((line) => wrapLine(line));
+}
+
+export function printCashSummary(summary: CashSummary) {
+  const lines = buildCashSummaryLines(summary);
+  const printWidthMm = Math.min(
+    58,
+    Math.max(48, Number(summary.settings.print_width_mm) || DEFAULT_SETTINGS.print_width_mm),
+  );
+  const ticketText = lines.map(escapeHtml).join("\n");
+  const html = `
+    <html>
+      <head>
+        <title>Cierre de caja</title>
+        <style>
+          @page { margin: 0; }
+          html, body { margin: 0; min-height: 0; }
+          body {
+            box-sizing: border-box;
+            font-family: Courier, monospace;
+            color: #000;
+            background: #fff;
+            font-size: 11px;
+          }
+          .ticket {
+            box-sizing: border-box;
+            width: ${printWidthMm}mm;
+            padding: 4mm;
+          }
+          pre { white-space: pre-wrap; margin: 0; line-height: 1.35; overflow: visible; }
+          @media print {
+            body { width: ${printWidthMm}mm; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="ticket">
+          <pre>${ticketText}</pre>
+        </div>
+      </body>
+    </html>
+  `;
+  printWithBrowserDialog(html);
 }
