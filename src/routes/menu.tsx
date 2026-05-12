@@ -72,7 +72,9 @@ function MenuPage() {
   const unavailableIngredientMap = useMemo(() => {
     const unavailable = new Set(
       stockItems
-        .filter((item) => item.type === "ingredient" && (!item.available || Number(item.quantity) <= 0))
+        .filter(
+          (item) => item.type === "ingredient" && (!item.available || Number(item.quantity) <= 0),
+        )
         .map((item) => item.name.trim().toLowerCase()),
     );
 

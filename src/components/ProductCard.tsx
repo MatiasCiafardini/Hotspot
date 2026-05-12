@@ -172,7 +172,9 @@ function ProductViewDialog({
   useEffect(() => {
     if (!open) return;
     setQuantity(1);
-    setRemoved(ingredients.filter((ingredient) => unavailableSet.has(ingredient.trim().toLowerCase())));
+    setRemoved(
+      ingredients.filter((ingredient) => unavailableSet.has(ingredient.trim().toLowerCase())),
+    );
     setNotes("");
   }, [ingredients, open, product.id, unavailableSet]);
 

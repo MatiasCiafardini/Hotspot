@@ -10,22 +10,22 @@ export const Route = createFileRoute("/api/store/menu")({
       GET: async () => {
         const [{ data: products }, { data: categories }, { data: settings }, { data: stockItems }] =
           await Promise.all([
-          (supabaseAdmin as any)
-            .from("products")
-            .select("*")
-            .eq("available", true)
-            .order("sort_order"),
-          (supabaseAdmin as any)
-            .from("product_categories")
-            .select("*")
-            .eq("active", true)
-            .order("sort_order"),
-          (supabaseAdmin as any).from("store_settings").select("*").limit(1).maybeSingle(),
-          (supabaseAdmin as any)
-            .from("stock_items")
-            .select("name, type, quantity, available")
-            .eq("type", "ingredient"),
-        ]);
+            (supabaseAdmin as any)
+              .from("products")
+              .select("*")
+              .eq("available", true)
+              .order("sort_order"),
+            (supabaseAdmin as any)
+              .from("product_categories")
+              .select("*")
+              .eq("active", true)
+              .order("sort_order"),
+            (supabaseAdmin as any).from("store_settings").select("*").limit(1).maybeSingle(),
+            (supabaseAdmin as any)
+              .from("stock_items")
+              .select("name, type, quantity, available")
+              .eq("type", "ingredient"),
+          ]);
 
         const loadedProducts = products ?? [];
         const hasRealMenu = loadedProducts.some(
