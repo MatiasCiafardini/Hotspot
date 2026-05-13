@@ -6,7 +6,7 @@ APP_NAME="${APP_NAME:-hotspot}"
 APP_HOST="${APP_HOST:-127.0.0.1}"
 APP_PORT="${APP_PORT:-3003}"
 RUN_GIT_PULL="${RUN_GIT_PULL:-0}"
-RUN_SUPABASE_PUSH="${RUN_SUPABASE_PUSH:-1}"
+RUN_SUPABASE_PUSH="${RUN_SUPABASE_PUSH:-0}"
 RUN_PRISMA_MIGRATE="${RUN_PRISMA_MIGRATE:-1}"
 
 log() {
@@ -124,7 +124,15 @@ restart_pm2() {
 
 healthcheck() {
   log "Verificando http://$APP_HOST:$APP_PORT."
-  curl -fsSI "http://$APP_HOST:$APP_PORT" >/dev/null
+  local attempt
+  for attempt in {1..30}; do
+    if curl -fsSI "http://$APP_HOST:$APP_PORT" >/dev/null; then
+      return 0
+    fi
+    sleep 1
+  done
+
+  fail "La app no respondio en http://$APP_HOST:$APP_PORT despues de 30 segundos."
 }
 
 main() {
