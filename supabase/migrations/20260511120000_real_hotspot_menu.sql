@@ -18,7 +18,7 @@ INSERT INTO public.products (
   name, description, price, category, image_url, badge, available, sort_order,
   stock_quantity, low_stock_threshold, ingredients
 ) VALUES
-  ('BIG MC', 'Doble carne, doble cheddar, salsita BIG MC, lechuga y pepinillos. Viene con papas.', 16000, 'burgers', '/src/assets/burger-double.jpg', 'NUEVA', true, 1, 30, 5, ARRAY['Doble carne','Doble cheddar','Salsita BIG MC','Lechuga','Pepinillos','Papas']),
+  ('BIG MC', 'Doble carne, doble cheddar, salsita BIG MC, lechuga y pepinillos. Viene con papas.', 16000, 'burgers', '/src/assets/burger-double.jpg', 'NUEVA', 2true, 1, 30, 5, ARRAY['Doble carne','Doble cheddar','Salsita BIG MC','Lechuga','Pepinillos','Papas']),
   ('Terra Burguer', 'BBQ, cebolla crispy, desmechadito de roast beef, crema griega y verdeito fino. Edición limitada. Viene con papas.', 17000, 'burgers', '/src/assets/burger-spicy.jpg', 'LIMITADA', true, 2, 30, 5, ARRAY['Doble carne','BBQ','Cebolla crispy','Roast beef desmechado','Crema griega','Verdeito fino','Papas']),
   ('Cuarto Heinz Burguer', 'Doble carne, doble cheddar, aderezos Heinz importados, mayonesa, mostaza, ketchup, cebollita cruda y pepinillos de la casa. Viene con papas.', 16000, 'burgers', '/src/assets/burger-classic.jpg', 'USA', true, 3, 30, 5, ARRAY['Doble carne','Doble cheddar','Mayonesa Heinz','Mostaza Heinz','Ketchup Heinz','Cebolla cruda','Pepinillos','Papas']),
   ('Sweet Baby', 'Doble carne, doble cheddar, Sweet Baby BBQ importada, cebolla caramel, bacon y aros de cebolla. Viene con papas.', 17000, 'burgers', '/src/assets/burger-spicy.jpg', 'USA', true, 4, 30, 5, ARRAY['Doble carne','Doble cheddar','Sweet Baby BBQ','Cebolla caramel','Bacon','Aros de cebolla','Papas']),

@@ -61,12 +61,15 @@ async function createOrder(input: {
 
 function CheckoutPage() {
   const { items, total, clear } = useCart();
-  const { customer, isLoading: customerLoading } = useCustomerAuth();
+  const { customer, isLoading: customerLoading, login } = useCustomerAuth();
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [settings, setSettings] = useState<StoreSettings>(DEFAULT_SETTINGS);
   const [transferSeconds, setTransferSeconds] = useState(300);
+  const [loginForm, setLoginForm] = useState({ email: "", password: "" });
+  const [loginSubmitting, setLoginSubmitting] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const { navigateWithTransition } = useRouteTransition();
 
   const [form, setForm] = useState({
@@ -165,6 +168,20 @@ function CheckoutPage() {
     setSubmitting(false);
   };
 
+  const submitLogin = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setLoginSubmitting(true);
+    setLoginError(null);
+    try {
+      await login(loginForm);
+      toast.success("Sesion iniciada. Ya podes confirmar tu pedido.");
+    } catch (error) {
+      setLoginError(error instanceof Error ? error.message : "No pudimos iniciar sesion.");
+    } finally {
+      setLoginSubmitting(false);
+    }
+  };
+
   if (items.length === 0 && !done) {
     return (
       <section className="mx-auto max-w-2xl px-4 py-20 text-center md:px-6">
@@ -202,25 +219,57 @@ function CheckoutPage() {
             <span>o usa email</span>
             <span className="h-px flex-1 bg-ink/20" />
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <a
-              href="/login?redirect=/checkout"
-              className="inline-flex items-center justify-center border border-primary bg-primary px-6 py-3 font-display uppercase text-primary-foreground"
-            >
-              Iniciar sesión
-            </a>
-            <a
-              href="/register?redirect=/checkout"
-              className="inline-flex items-center justify-center border border-ink bg-background px-6 py-3 font-display uppercase text-foreground"
-            >
+          <form onSubmit={submitLogin} className="mx-auto grid max-w-sm gap-3 text-left">
+            <input
+              className="w-full border border-ink bg-background px-4 py-3 font-body focus:border-primary focus:outline-none"
+              placeholder="Email"
+              type="email"
+              autoComplete="email"
+              required
+              value={loginForm.email}
+              onChange={(event) =>
+                setLoginForm((current) => ({ ...current, email: event.target.value }))
+              }
+            />
+            <input
+              className="w-full border border-ink bg-background px-4 py-3 font-body focus:border-primary focus:outline-none"
+              placeholder="Contraseña"
+              type="password"
+              autoComplete="current-password"
+              required
+              value={loginForm.password}
+              onChange={(event) =>
+                setLoginForm((current) => ({ ...current, password: event.target.value }))
+              }
+            />
+            {loginError && (
+              <p className="border border-red-500 bg-red-500/10 p-3 text-sm text-red-700">
+                {loginError}
+              </p>
+            )}
+            <SmashButton type="submit" className="w-full" glow disabled={loginSubmitting}>
+              {loginSubmitting ? "Ingresando..." : "Iniciar sesion"}
+            </SmashButton>
+          </form>
+          <div className="mx-auto mt-4 grid max-w-sm gap-2 text-center text-xs text-muted-foreground sm:grid-cols-2">
+            <a href="/register?redirect=/checkout" className="hover:text-primary">
               Crear cuenta
             </a>
+            <a href="/forgot-password" className="hover:text-primary">
+              Olvide mi contraseña
+            </a>
           </div>
+          <button
+            type="button"
+            onClick={() => navigateWithTransition("/menu")}
+            className="mt-6 text-xs font-bold uppercase text-muted-foreground hover:text-primary"
+          >
+            Seguir mirando el menu
+          </button>
         </div>
       </section>
     );
   }
-
   if (!storeOpen) {
     return (
       <section className="mx-auto max-w-2xl px-4 py-20 text-center md:px-6">

@@ -36,7 +36,9 @@ function parseEmailVerified(value: boolean | string | undefined) {
 
 export async function verifyGoogleCredential(credential: string): Promise<GoogleCustomerProfile> {
   const clientId = getGoogleClientId();
-  const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`);
+  const response = await fetch(
+    `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`,
+  );
 
   if (!response.ok) throw new Error("No pudimos validar la cuenta de Google.");
 
@@ -44,7 +46,8 @@ export async function verifyGoogleCredential(credential: string): Promise<Google
   if (!parsed.success) throw new Error("La respuesta de Google no es valida.");
 
   const token = parsed.data;
-  if (token.aud !== clientId) throw new Error("La credencial de Google no corresponde a esta aplicacion.");
+  if (token.aud !== clientId)
+    throw new Error("La credencial de Google no corresponde a esta aplicacion.");
 
   const emailVerified = parseEmailVerified(token.email_verified);
   if (!emailVerified) throw new Error("Google no confirmo este email.");
@@ -60,7 +63,10 @@ export async function verifyGoogleCredential(credential: string): Promise<Google
   };
 }
 
-export async function loginOrCreateGoogleCustomer(profile: GoogleCustomerProfile, storeId = DEFAULT_STORE_ID) {
+export async function loginOrCreateGoogleCustomer(
+  profile: GoogleCustomerProfile,
+  storeId = DEFAULT_STORE_ID,
+) {
   const existing = await findCustomerByEmail(profile.email, storeId);
 
   if (existing) {

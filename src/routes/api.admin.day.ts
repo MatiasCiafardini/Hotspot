@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { DEFAULT_SETTINGS, deriveCashSummaryStats, type AdminOrder } from "@/lib/admin";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { json, methodNotAllowed } from "@/lib/server/customer-auth";
+import { requireAdminOwner } from "@/lib/server/admin-auth";
 import { DEFAULT_STORE_ID } from "@/lib/server/customer-session";
 
 const CLOSABLE_STATUSES = ["delivered", "rejected", "cancelled"];
@@ -17,7 +18,10 @@ function isMissingCashClosuresTable(error: { code?: string; message?: string } |
 export const Route = createFileRoute("/api/admin/day")({
   server: {
     handlers: {
-      GET: async () => {
+      GET: async ({ request }) => {
+        const admin = await requireAdminOwner(request);
+        if ("response" in admin) return admin.response;
+
         const { data, error } = await (supabaseAdmin as any)
           .from("cash_closures")
           .select("*")
@@ -36,6 +40,9 @@ export const Route = createFileRoute("/api/admin/day")({
         return json({ closures: data ?? [] });
       },
       POST: async ({ request }) => {
+        const admin = await requireAdminOwner(request);
+        if ("response" in admin) return admin.response;
+
         const body = await request.json().catch(() => ({}));
         const action = body?.action;
 

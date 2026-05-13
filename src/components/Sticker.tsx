@@ -18,7 +18,13 @@ const COLORS: Record<NonNullable<Props["color"]>, string> = {
   pink: "bg-muted text-ink",
 };
 
-export function Sticker({ children, rotate = -2, delay = 0, className = "", color = "mustard" }: Props) {
+export function Sticker({
+  children,
+  rotate = -2,
+  delay = 0,
+  className = "",
+  color = "mustard",
+}: Props) {
   return (
     <motion.div
       initial={{ scale: 0.3, rotate: rotate - 20, opacity: 0 }}

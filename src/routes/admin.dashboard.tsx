@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminPageHeader, StatCard, AdminButton } from "@/components/admin/AdminBits";
+import { adminApiFetch, readApiError } from "@/lib/admin-api";
 import {
   DEFAULT_SETTINGS,
   formatDateTime,
@@ -127,35 +128,51 @@ function Dashboard() {
 
   const startDay = async () => {
     setDayBusy(true);
-    const response = await fetch("/api/admin/day", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "start", shift: selectedShift }),
-    });
-    const data = await response.json().catch(() => null);
-    setDayBusy(false);
-    if (!response.ok) return toast.error(data?.error ?? "No se pudo iniciar el dia.");
-    if (data?.settings) setSettings({ ...DEFAULT_SETTINGS, ...(data.settings as StoreSettings) });
-    setDayDialog(null);
-    toast.success(`Dia iniciado: ${MENU_SHIFT_LABEL[selectedShift]}. La tienda ya acepta pedidos.`);
-    load();
+    try {
+      const response = await adminApiFetch("/api/admin/day", {
+        method: "POST",
+        body: JSON.stringify({ action: "start", shift: selectedShift }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok)
+        return toast.error(
+          data?.error ?? (await readApiError(response, "No se pudo iniciar el dia.")),
+        );
+      if (data?.settings) setSettings({ ...DEFAULT_SETTINGS, ...(data.settings as StoreSettings) });
+      setDayDialog(null);
+      toast.success(
+        `Dia iniciado: ${MENU_SHIFT_LABEL[selectedShift]}. La tienda ya acepta pedidos.`,
+      );
+      load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo iniciar el dia.");
+    } finally {
+      setDayBusy(false);
+    }
   };
 
   const closeDay = async () => {
     setDayBusy(true);
-    const response = await fetch("/api/admin/day", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "close" }),
-    });
-    const data = await response.json().catch(() => null);
-    setDayBusy(false);
-    if (!response.ok) return toast.error(data?.error ?? "No se pudo cerrar el dia.");
-    if (data?.settings) setSettings({ ...DEFAULT_SETTINGS, ...(data.settings as StoreSettings) });
-    if (data?.summary) setCashSummary(data.summary as CashSummaryDialogData);
-    setDayDialog(null);
-    toast.success("Dia cerrado. El resumen quedo guardado.");
-    load();
+    try {
+      const response = await adminApiFetch("/api/admin/day", {
+        method: "POST",
+        body: JSON.stringify({ action: "close" }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok)
+        return toast.error(
+          data?.error ?? (await readApiError(response, "No se pudo cerrar el dia.")),
+        );
+      if (data?.settings) setSettings({ ...DEFAULT_SETTINGS, ...(data.settings as StoreSettings) });
+      if (data?.summary) setCashSummary(data.summary as CashSummaryDialogData);
+      setDayDialog(null);
+      toast.success("Dia cerrado. El resumen quedo guardado.");
+      load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo cerrar el dia.");
+    } finally {
+      setDayBusy(false);
+    }
   };
 
   return (

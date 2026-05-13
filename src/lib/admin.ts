@@ -383,21 +383,48 @@ export type CashSummary = {
   settings: StoreSettings;
 };
 
+function normalizePaymentMethod(value: string | null | undefined) {
+  return (value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function normalizePaymentStatus(value: string | null | undefined) {
+  return (value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function isTransferPayment(order: AdminOrder) {
+  const method = normalizePaymentMethod(order.payment_method);
+  return method.includes("transfer");
+}
+
+function isCashPayment(order: AdminOrder) {
+  const method = normalizePaymentMethod(order.payment_method);
+  return method === "efectivo" || method === "cash";
+}
+
+function isApprovedPayment(order: AdminOrder) {
+  const status = normalizePaymentStatus(order.payment_status);
+  return status === "approved" || status === "aprobado";
+}
+
 export function deriveCashSummaryStats(orders: AdminOrder[]) {
   const validOrders = orders.filter((order) => !["rejected", "cancelled"].includes(order.status));
   const rejectedOrders = orders.filter((order) => ["rejected", "cancelled"].includes(order.status));
   const approvedTransfer = validOrders
-    .filter(
-      (order) => order.payment_method === "transferencia" && order.payment_status === "approved",
-    )
+    .filter((order) => isTransferPayment(order) && isApprovedPayment(order))
     .reduce((sum, order) => sum + Number(order.total), 0);
   const pendingTransfer = validOrders
-    .filter(
-      (order) => order.payment_method === "transferencia" && order.payment_status !== "approved",
-    )
+    .filter((order) => isTransferPayment(order) && !isApprovedPayment(order))
     .reduce((sum, order) => sum + Number(order.total), 0);
   const cash = validOrders
-    .filter((order) => order.payment_method === "efectivo")
+    .filter((order) => isCashPayment(order))
     .reduce((sum, order) => sum + Number(order.total), 0);
   const total = validOrders.reduce((sum, order) => sum + Number(order.total), 0);
 

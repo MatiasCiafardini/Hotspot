@@ -20,6 +20,7 @@ import { Route as ContactoRouteImport } from './routes/contacto'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminVentaLocalRouteImport } from './routes/admin.venta-local'
 import { Route as AdminStockRouteImport } from './routes/admin.stock'
 import { Route as AdminProductosRouteImport } from './routes/admin.productos'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
@@ -28,6 +29,7 @@ import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminConfiguracionRouteImport } from './routes/admin.configuracion'
 import { Route as ApiStoreOrdersRouteImport } from './routes/api.store.orders'
 import { Route as ApiStoreMenuRouteImport } from './routes/api.store.menu'
+import { Route as ApiAdminLocalSaleRouteImport } from './routes/api.admin.local-sale'
 import { Route as ApiAdminDayRouteImport } from './routes/api.admin.day'
 import { Route as ApiAdminConfigRouteImport } from './routes/api.admin.config'
 import { Route as ApiAdminCategoriesRouteImport } from './routes/api.admin.categories'
@@ -41,6 +43,7 @@ import { Route as ApiStoreAuthLoginRouteImport } from './routes/api.store.auth.l
 import { Route as ApiStoreAuthGoogleRouteImport } from './routes/api.store.auth.google'
 import { Route as ApiStoreAuthForgotPasswordRouteImport } from './routes/api.store.auth.forgot-password'
 import { Route as ApiAdminStockSyncBurgersRouteImport } from './routes/api.admin.stock.sync-burgers'
+import { Route as ApiAdminOrdersStatusRouteImport } from './routes/api.admin.orders.status'
 
 const SobreRoute = SobreRouteImport.update({
   id: '/sobre',
@@ -97,6 +100,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminVentaLocalRoute = AdminVentaLocalRouteImport.update({
+  id: '/venta-local',
+  path: '/venta-local',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminStockRoute = AdminStockRouteImport.update({
   id: '/stock',
   path: '/stock',
@@ -135,6 +143,11 @@ const ApiStoreOrdersRoute = ApiStoreOrdersRouteImport.update({
 const ApiStoreMenuRoute = ApiStoreMenuRouteImport.update({
   id: '/api/store/menu',
   path: '/api/store/menu',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminLocalSaleRoute = ApiAdminLocalSaleRouteImport.update({
+  id: '/api/admin/local-sale',
+  path: '/api/admin/local-sale',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminDayRoute = ApiAdminDayRouteImport.update({
@@ -205,6 +218,11 @@ const ApiAdminStockSyncBurgersRoute =
     path: '/api/admin/stock/sync-burgers',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAdminOrdersStatusRoute = ApiAdminOrdersStatusRouteImport.update({
+  id: '/api/admin/orders/status',
+  path: '/api/admin/orders/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -224,11 +242,14 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/productos': typeof AdminProductosRoute
   '/admin/stock': typeof AdminStockRoute
+  '/admin/venta-local': typeof AdminVentaLocalRoute
   '/api/admin/categories': typeof ApiAdminCategoriesRoute
   '/api/admin/config': typeof ApiAdminConfigRoute
   '/api/admin/day': typeof ApiAdminDayRoute
+  '/api/admin/local-sale': typeof ApiAdminLocalSaleRoute
   '/api/store/menu': typeof ApiStoreMenuRoute
   '/api/store/orders': typeof ApiStoreOrdersRoute
+  '/api/admin/orders/status': typeof ApiAdminOrdersStatusRoute
   '/api/admin/stock/sync-burgers': typeof ApiAdminStockSyncBurgersRoute
   '/api/store/auth/forgot-password': typeof ApiStoreAuthForgotPasswordRoute
   '/api/store/auth/google': typeof ApiStoreAuthGoogleRoute
@@ -258,11 +279,14 @@ export interface FileRoutesByTo {
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/productos': typeof AdminProductosRoute
   '/admin/stock': typeof AdminStockRoute
+  '/admin/venta-local': typeof AdminVentaLocalRoute
   '/api/admin/categories': typeof ApiAdminCategoriesRoute
   '/api/admin/config': typeof ApiAdminConfigRoute
   '/api/admin/day': typeof ApiAdminDayRoute
+  '/api/admin/local-sale': typeof ApiAdminLocalSaleRoute
   '/api/store/menu': typeof ApiStoreMenuRoute
   '/api/store/orders': typeof ApiStoreOrdersRoute
+  '/api/admin/orders/status': typeof ApiAdminOrdersStatusRoute
   '/api/admin/stock/sync-burgers': typeof ApiAdminStockSyncBurgersRoute
   '/api/store/auth/forgot-password': typeof ApiStoreAuthForgotPasswordRoute
   '/api/store/auth/google': typeof ApiStoreAuthGoogleRoute
@@ -293,11 +317,14 @@ export interface FileRoutesById {
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/productos': typeof AdminProductosRoute
   '/admin/stock': typeof AdminStockRoute
+  '/admin/venta-local': typeof AdminVentaLocalRoute
   '/api/admin/categories': typeof ApiAdminCategoriesRoute
   '/api/admin/config': typeof ApiAdminConfigRoute
   '/api/admin/day': typeof ApiAdminDayRoute
+  '/api/admin/local-sale': typeof ApiAdminLocalSaleRoute
   '/api/store/menu': typeof ApiStoreMenuRoute
   '/api/store/orders': typeof ApiStoreOrdersRoute
+  '/api/admin/orders/status': typeof ApiAdminOrdersStatusRoute
   '/api/admin/stock/sync-burgers': typeof ApiAdminStockSyncBurgersRoute
   '/api/store/auth/forgot-password': typeof ApiStoreAuthForgotPasswordRoute
   '/api/store/auth/google': typeof ApiStoreAuthGoogleRoute
@@ -329,11 +356,14 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/productos'
     | '/admin/stock'
+    | '/admin/venta-local'
     | '/api/admin/categories'
     | '/api/admin/config'
     | '/api/admin/day'
+    | '/api/admin/local-sale'
     | '/api/store/menu'
     | '/api/store/orders'
+    | '/api/admin/orders/status'
     | '/api/admin/stock/sync-burgers'
     | '/api/store/auth/forgot-password'
     | '/api/store/auth/google'
@@ -363,11 +393,14 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/productos'
     | '/admin/stock'
+    | '/admin/venta-local'
     | '/api/admin/categories'
     | '/api/admin/config'
     | '/api/admin/day'
+    | '/api/admin/local-sale'
     | '/api/store/menu'
     | '/api/store/orders'
+    | '/api/admin/orders/status'
     | '/api/admin/stock/sync-burgers'
     | '/api/store/auth/forgot-password'
     | '/api/store/auth/google'
@@ -397,11 +430,14 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/productos'
     | '/admin/stock'
+    | '/admin/venta-local'
     | '/api/admin/categories'
     | '/api/admin/config'
     | '/api/admin/day'
+    | '/api/admin/local-sale'
     | '/api/store/menu'
     | '/api/store/orders'
+    | '/api/admin/orders/status'
     | '/api/admin/stock/sync-burgers'
     | '/api/store/auth/forgot-password'
     | '/api/store/auth/google'
@@ -429,8 +465,10 @@ export interface RootRouteChildren {
   ApiAdminCategoriesRoute: typeof ApiAdminCategoriesRoute
   ApiAdminConfigRoute: typeof ApiAdminConfigRoute
   ApiAdminDayRoute: typeof ApiAdminDayRoute
+  ApiAdminLocalSaleRoute: typeof ApiAdminLocalSaleRoute
   ApiStoreMenuRoute: typeof ApiStoreMenuRoute
   ApiStoreOrdersRoute: typeof ApiStoreOrdersRoute
+  ApiAdminOrdersStatusRoute: typeof ApiAdminOrdersStatusRoute
   ApiAdminStockSyncBurgersRoute: typeof ApiAdminStockSyncBurgersRoute
   ApiStoreAuthForgotPasswordRoute: typeof ApiStoreAuthForgotPasswordRoute
   ApiStoreAuthGoogleRoute: typeof ApiStoreAuthGoogleRoute
@@ -522,6 +560,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/venta-local': {
+      id: '/admin/venta-local'
+      path: '/venta-local'
+      fullPath: '/admin/venta-local'
+      preLoaderRoute: typeof AdminVentaLocalRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/stock': {
       id: '/admin/stock'
       path: '/stock'
@@ -576,6 +621,13 @@ declare module '@tanstack/react-router' {
       path: '/api/store/menu'
       fullPath: '/api/store/menu'
       preLoaderRoute: typeof ApiStoreMenuRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/local-sale': {
+      id: '/api/admin/local-sale'
+      path: '/api/admin/local-sale'
+      fullPath: '/api/admin/local-sale'
+      preLoaderRoute: typeof ApiAdminLocalSaleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/day': {
@@ -669,6 +721,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminStockSyncBurgersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/orders/status': {
+      id: '/api/admin/orders/status'
+      path: '/api/admin/orders/status'
+      fullPath: '/api/admin/orders/status'
+      preLoaderRoute: typeof ApiAdminOrdersStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -679,6 +738,7 @@ interface AdminRouteChildren {
   AdminPedidosRoute: typeof AdminPedidosRoute
   AdminProductosRoute: typeof AdminProductosRoute
   AdminStockRoute: typeof AdminStockRoute
+  AdminVentaLocalRoute: typeof AdminVentaLocalRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -688,6 +748,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPedidosRoute: AdminPedidosRoute,
   AdminProductosRoute: AdminProductosRoute,
   AdminStockRoute: AdminStockRoute,
+  AdminVentaLocalRoute: AdminVentaLocalRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
@@ -707,8 +768,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminCategoriesRoute: ApiAdminCategoriesRoute,
   ApiAdminConfigRoute: ApiAdminConfigRoute,
   ApiAdminDayRoute: ApiAdminDayRoute,
+  ApiAdminLocalSaleRoute: ApiAdminLocalSaleRoute,
   ApiStoreMenuRoute: ApiStoreMenuRoute,
   ApiStoreOrdersRoute: ApiStoreOrdersRoute,
+  ApiAdminOrdersStatusRoute: ApiAdminOrdersStatusRoute,
   ApiAdminStockSyncBurgersRoute: ApiAdminStockSyncBurgersRoute,
   ApiStoreAuthForgotPasswordRoute: ApiStoreAuthForgotPasswordRoute,
   ApiStoreAuthGoogleRoute: ApiStoreAuthGoogleRoute,

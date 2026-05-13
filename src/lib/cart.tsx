@@ -73,15 +73,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems((prev) => {
       const existing = prev.find((i) => i.id === item.id);
       if (existing) {
-        return prev.map((i) => (i.id === item.id ? { ...i, quantity: i.quantity + (item.quantity ?? 1) } : i));
+        return prev.map((i) =>
+          i.id === item.id ? { ...i, quantity: i.quantity + (item.quantity ?? 1) } : i,
+        );
       }
       return [...prev, { ...item, quantity: item.quantity ?? 1 }];
     });
     setLastAddedAt(Date.now());
   };
 
-  const remove: CartCtx["remove"] = (id) =>
-    setItems((prev) => prev.filter((i) => i.id !== id));
+  const remove: CartCtx["remove"] = (id) => setItems((prev) => prev.filter((i) => i.id !== id));
 
   const setQty: CartCtx["setQty"] = (id, qty) => {
     if (qty <= 0) return remove(id);
@@ -98,7 +99,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const count = useMemo(() => items.reduce((s, i) => s + i.quantity, 0), [items]);
 
   return (
-    <Ctx.Provider value={{ items, add, remove, setQty, updateItem, clear, open, setOpen, total, count, lastAddedAt }}>
+    <Ctx.Provider
+      value={{
+        items,
+        add,
+        remove,
+        setQty,
+        updateItem,
+        clear,
+        open,
+        setOpen,
+        total,
+        count,
+        lastAddedAt,
+      }}
+    >
       {children}
     </Ctx.Provider>
   );

@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Download, Printer, ReceiptText, Search } from "lucide-react";
+import { Printer, ReceiptText, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { adminApiFetch } from "@/lib/admin-api";
 import {
   AdminButton,
   AdminInput,
@@ -11,7 +12,6 @@ import {
 import {
   type CashClosure,
   DEFAULT_SETTINGS,
-  downloadComandaPdf,
   formatDateTime,
   formatMoney,
   ORDER_STATUS_CLASS,
@@ -49,7 +49,7 @@ function HistoryPage() {
       .order("created_at", { ascending: false })
       .then(({ data }: { data: AdminOrder[] | null }) => setOrders(data ?? []));
 
-    fetch("/api/admin/day")
+    adminApiFetch("/api/admin/day")
       .then((response) => (response.ok ? response.json() : null))
       .then((data: { closures?: CashClosure[] } | null) => setClosures(data?.closures ?? []))
       .catch(() => setClosures([]));
@@ -123,7 +123,7 @@ function HistoryPage() {
           </div>
 
           <div className="overflow-hidden rounded-lg border border-white/10 bg-zinc-900/70">
-            <div className="grid grid-cols-[120px_1fr_120px_120px_190px] gap-3 border-b border-white/10 p-3 text-xs font-bold uppercase text-zinc-500 max-lg:hidden">
+            <div className="grid grid-cols-[120px_1fr_120px_120px_120px] gap-3 border-b border-white/10 p-3 text-xs font-bold uppercase text-zinc-500 max-lg:hidden">
               <span>Pedido</span>
               <span>Cliente</span>
               <span>Estado</span>
@@ -133,7 +133,7 @@ function HistoryPage() {
             {filtered.map((order) => (
               <div
                 key={order.id}
-                className="grid gap-3 border-b border-white/10 p-3 last:border-0 lg:grid-cols-[120px_1fr_120px_120px_190px] lg:items-center"
+                className="grid gap-3 border-b border-white/10 p-3 last:border-0 lg:grid-cols-[120px_1fr_120px_120px_120px] lg:items-center"
               >
                 <span className="font-mono text-sm text-orange-300">{shortOrderId(order.id)}</span>
                 <div>
@@ -154,12 +154,6 @@ function HistoryPage() {
                     onClick={() => printComanda(order, DEFAULT_SETTINGS)}
                   >
                     <Printer className="h-4 w-4" />
-                  </AdminButton>
-                  <AdminButton
-                    variant="ghost"
-                    onClick={() => downloadComandaPdf(order, DEFAULT_SETTINGS)}
-                  >
-                    <Download className="h-4 w-4" />
                   </AdminButton>
                   {order.payment_receipt_url && (
                     <a href={order.payment_receipt_url} target="_blank" rel="noreferrer">

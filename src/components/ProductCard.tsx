@@ -265,26 +265,36 @@ function ProductViewDialog({
                     const locked = !canRemoveIngredient(ingredient);
                     const unavailable = unavailableSet.has(ingredient.trim().toLowerCase());
                     return (
-                      <label
+                      <button
+                        type="button"
                         key={ingredient}
-                        className={`flex min-h-11 items-center gap-2 border border-ink/30 bg-card px-3 py-2 text-sm ${
+                        disabled={locked || unavailable}
+                        onClick={() => toggleIngredient(ingredient, !removed.includes(ingredient))}
+                        className={`flex min-h-12 items-center justify-between gap-3 border px-3 py-2 text-left text-sm transition-colors ${
                           locked || unavailable ? "cursor-not-allowed opacity-60" : ""
+                        } ${
+                          removed.includes(ingredient)
+                            ? "border-red-600 bg-red-950 text-red-100"
+                            : "border-ink/30 bg-card hover:border-primary"
                         } ${unavailable ? "border-yellow-500 bg-yellow-100 text-yellow-950" : ""}`}
                       >
-                        <input
-                          type="checkbox"
-                          disabled={locked || unavailable}
-                          checked={removed.includes(ingredient)}
-                          onChange={(event) => toggleIngredient(ingredient, event.target.checked)}
-                        />
-                        <span className="min-w-0 flex-1">{ingredient}</span>
-                        {unavailable && (
+                        <span
+                          className={`min-w-0 flex-1 ${
+                            removed.includes(ingredient) ? "line-through opacity-70" : ""
+                          }`}
+                        >
+                          {ingredient}
+                        </span>
+                        {unavailable ? (
                           <span className="text-[10px] uppercase text-yellow-900">Sin stock</span>
+                        ) : (
+                          locked && (
+                            <span className="text-[10px] uppercase text-muted-foreground">
+                              Fijo
+                            </span>
+                          )
                         )}
-                        {locked && (
-                          <span className="text-[10px] uppercase text-muted-foreground">Fijo</span>
-                        )}
-                      </label>
+                      </button>
                     );
                   })}
                 </div>

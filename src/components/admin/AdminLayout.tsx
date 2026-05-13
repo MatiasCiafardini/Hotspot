@@ -8,6 +8,7 @@ import {
   LogOut,
   Menu,
   Package,
+  ShoppingBag,
   Settings,
   X,
 } from "lucide-react";
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils";
 
 const NAV = [
   { to: "/admin/dashboard", label: "Dashboard", Icon: BarChart3 },
+  { to: "/admin/venta-local", label: "Venta local", Icon: ShoppingBag },
   { to: "/admin/pedidos", label: "Pedidos", Icon: ClipboardList },
   { to: "/admin/historial", label: "Historial", Icon: History },
   { to: "/admin/productos", label: "Productos", Icon: Package },
@@ -73,7 +75,11 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   };
 
   if (!checked) {
-    return <div className="flex min-h-screen items-center justify-center bg-zinc-950 text-sm text-zinc-400">Verificando acceso...</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-950 text-sm text-zinc-400">
+        Verificando acceso...
+      </div>
+    );
   }
 
   const sidebar = (
@@ -125,7 +131,12 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         )}
       </AnimatePresence>
 
-      <main className={cn("min-h-screen px-4 pb-10 pt-20 transition-[padding] md:px-6 lg:pt-8", collapsed ? "lg:pl-28" : "lg:pl-72")}>
+      <main
+        className={cn(
+          "min-h-screen px-4 pb-10 pt-20 transition-[padding] md:px-6 lg:pt-8",
+          collapsed ? "lg:pl-28" : "lg:pl-72",
+        )}
+      >
         {children}
       </main>
     </div>
@@ -154,7 +165,11 @@ function AdminSidebar({
     >
       <div className="flex items-center justify-between border-b border-white/10 p-4">
         <Link to="/admin/dashboard" className="flex min-w-0 items-center gap-3">
-          <img src={logo} alt="Hotspot" className="h-11 w-11 rounded-md border border-orange-400/50 object-cover" />
+          <img
+            src={logo}
+            alt="Hotspot"
+            className="h-11 w-11 rounded-md border border-orange-400/50 object-cover"
+          />
           {!collapsed && (
             <div>
               <p className="font-display text-xl leading-none text-orange-300">Hotspot</p>

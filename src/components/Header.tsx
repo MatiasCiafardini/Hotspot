@@ -146,7 +146,9 @@ export function Header() {
               variants={{ show: { transition: { staggerChildren: 0.05 } } }}
             >
               {NAV.concat(
-                customer ? ([{ to: "/mi-cuenta", label: "Mi cuenta" }] as any) : ([{ to: "/login", label: "Ingresar" }] as any),
+                customer
+                  ? ([{ to: "/mi-cuenta", label: "Mi cuenta" }] as any)
+                  : ([{ to: "/login", label: "Ingresar" }] as any),
                 [{ to: "/admin", label: "🔒 Acceso dueño" } as any],
               ).map((item) => (
                 <motion.div

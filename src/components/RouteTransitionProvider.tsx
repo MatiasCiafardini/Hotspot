@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useRef, useState, type MouseEvent, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useRef,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { motion, useAnimationControls } from "framer-motion";
 import logoHotspot from "@/assets/logo_hotspot.png";
@@ -27,7 +35,9 @@ function normalizePath(path: string) {
 
 export function RouteTransitionProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
-  const isAdmin = useRouterState({ select: (state) => state.location.pathname.startsWith("/admin") });
+  const isAdmin = useRouterState({
+    select: (state) => state.location.pathname.startsWith("/admin"),
+  });
   const controls = useAnimationControls();
   const [active, setActive] = useState(false);
   const activeRef = useRef(false);
@@ -67,10 +77,24 @@ export function RouteTransitionProvider({ children }: { children: ReactNode }) {
   );
 
   const handleInternalLink = (event: MouseEvent<HTMLDivElement>) => {
-    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    )
+      return;
 
     const anchor = (event.target as HTMLElement).closest("a[href]") as HTMLAnchorElement | null;
-    if (!anchor || anchor.target || anchor.hasAttribute("download") || anchor.dataset.transitionHandled === "true") return;
+    if (
+      !anchor ||
+      anchor.target ||
+      anchor.hasAttribute("download") ||
+      anchor.dataset.transitionHandled === "true"
+    )
+      return;
 
     const url = new URL(anchor.href);
     if (url.origin !== window.location.origin) return;
@@ -137,7 +161,15 @@ export function TransitionLink({
       aria-label={ariaLabel}
       className={className}
       onClick={(event) => {
-        if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        if (
+          event.defaultPrevented ||
+          event.button !== 0 ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.altKey
+        )
+          return;
         event.preventDefault();
         onClick?.();
         void navigateWithTransition(to, { resetScroll });

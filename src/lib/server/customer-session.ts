@@ -12,7 +12,9 @@ export type CustomerSessionPayload = {
 function getSessionSecret() {
   const secret = process.env.CUSTOMER_SESSION_SECRET;
   if (!secret || secret.length < 32) {
-    throw new Error("Missing CUSTOMER_SESSION_SECRET. Set a random secret with at least 32 characters.");
+    throw new Error(
+      "Missing CUSTOMER_SESSION_SECRET. Set a random secret with at least 32 characters.",
+    );
   }
 
   return new TextEncoder().encode(secret);
@@ -26,7 +28,9 @@ export async function createCustomerSessionToken(payload: CustomerSessionPayload
     .sign(getSessionSecret());
 }
 
-export async function verifyCustomerSessionToken(token: string): Promise<CustomerSessionPayload | null> {
+export async function verifyCustomerSessionToken(
+  token: string,
+): Promise<CustomerSessionPayload | null> {
   try {
     const { payload } = await jwtVerify(token, getSessionSecret());
     if (typeof payload.customerId !== "string" || typeof payload.storeId !== "number") return null;
@@ -50,7 +54,9 @@ export function getCustomerSessionToken(request: Request) {
 function isSecureRequest(request: Request) {
   const url = new URL(request.url);
   const forwardedProto = request.headers.get("x-forwarded-proto");
-  return url.protocol === "https:" || forwardedProto === "https" || process.env.NODE_ENV === "production";
+  return (
+    url.protocol === "https:" || forwardedProto === "https" || process.env.NODE_ENV === "production"
+  );
 }
 
 function serializeCookie(name: string, value: string, request: Request, maxAge: number) {

@@ -7,7 +7,9 @@ import type { StockItem } from "@/lib/admin";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/stock")({
-  head: () => ({ meta: [{ title: "Stock admin - Hotspot" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({
+    meta: [{ title: "Stock admin - Hotspot" }, { name: "robots", content: "noindex" }],
+  }),
   component: StockPage,
 });
 
@@ -17,7 +19,10 @@ function StockPage() {
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const { data, error } = await (supabase as any).from("stock_items").select("*").order("name", { ascending: true });
+    const { data, error } = await (supabase as any)
+      .from("stock_items")
+      .select("*")
+      .order("name", { ascending: true });
     if (error) {
       toast.error("Falta crear la tabla stock_items en Supabase.");
       setLoading(false);
@@ -42,7 +47,9 @@ function StockPage() {
   };
 
   const create = async () => {
-    const { error } = await (supabase as any).from("stock_items").insert({ ...draft, type: "ingredient", available: true });
+    const { error } = await (supabase as any)
+      .from("stock_items")
+      .insert({ ...draft, type: "ingredient", available: true });
     if (error) return toast.error("No se pudo crear el item.");
     toast.success("Item de stock creado.");
     setDraft({ name: "", quantity: 0, low_stock_threshold: 5 });
@@ -72,15 +79,27 @@ function StockPage() {
       <div className="mb-5 grid gap-3 rounded-lg border border-orange-400/30 bg-zinc-900/80 p-4 md:grid-cols-[1fr_150px_150px_auto]">
         <label className="grid gap-1 text-xs font-bold uppercase tracking-wide text-zinc-400">
           Item
-          <AdminInput placeholder="Nombre" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
+          <AdminInput
+            placeholder="Nombre"
+            value={draft.name}
+            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+          />
         </label>
         <label className="grid gap-1 text-xs font-bold uppercase tracking-wide text-zinc-400">
           Stock
-          <AdminInput type="number" value={draft.quantity} onChange={(e) => setDraft({ ...draft, quantity: Number(e.target.value) })} />
+          <AdminInput
+            type="number"
+            value={draft.quantity}
+            onChange={(e) => setDraft({ ...draft, quantity: Number(e.target.value) })}
+          />
         </label>
         <label className="grid gap-1 text-xs font-bold uppercase tracking-wide text-zinc-400">
           Minimo
-          <AdminInput type="number" value={draft.low_stock_threshold} onChange={(e) => setDraft({ ...draft, low_stock_threshold: Number(e.target.value) })} />
+          <AdminInput
+            type="number"
+            value={draft.low_stock_threshold}
+            onChange={(e) => setDraft({ ...draft, low_stock_threshold: Number(e.target.value) })}
+          />
         </label>
         <AdminButton onClick={create} disabled={!draft.name}>
           <Save className="h-4 w-4" /> Agregar
@@ -88,7 +107,9 @@ function StockPage() {
       </div>
 
       {loading ? (
-        <div className="rounded-lg border border-white/10 bg-zinc-900/70 p-10 text-center text-zinc-400">Cargando stock...</div>
+        <div className="rounded-lg border border-white/10 bg-zinc-900/70 p-10 text-center text-zinc-400">
+          Cargando stock...
+        </div>
       ) : (
         <div className="grid gap-3">
           {items.map((item) => {
@@ -103,23 +124,47 @@ function StockPage() {
               >
                 <div>
                   <div className="flex items-center gap-2">
-                    <AdminInput value={item.name} onChange={(e) => update(item, { name: e.target.value })} />
-                    {(low || out) && <AlertTriangle className={out ? "h-4 w-4 text-red-300" : "h-4 w-4 text-orange-300"} />}
+                    <AdminInput
+                      value={item.name}
+                      onChange={(e) => update(item, { name: e.target.value })}
+                    />
+                    {(low || out) && (
+                      <AlertTriangle
+                        className={out ? "h-4 w-4 text-red-300" : "h-4 w-4 text-orange-300"}
+                      />
+                    )}
                   </div>
                 </div>
                 <label className="grid gap-1 text-xs font-bold uppercase tracking-wide text-zinc-400">
                   Stock
-                  <AdminInput type="number" value={item.quantity} onChange={(e) => update(item, { quantity: Number(e.target.value) })} />
+                  <AdminInput
+                    type="number"
+                    value={item.quantity}
+                    onChange={(e) => update(item, { quantity: Number(e.target.value) })}
+                  />
                 </label>
                 <label className="grid gap-1 text-xs font-bold uppercase tracking-wide text-zinc-400">
                   Minimo
-                  <AdminInput type="number" value={item.low_stock_threshold} onChange={(e) => update(item, { low_stock_threshold: Number(e.target.value) })} />
+                  <AdminInput
+                    type="number"
+                    value={item.low_stock_threshold}
+                    onChange={(e) => update(item, { low_stock_threshold: Number(e.target.value) })}
+                  />
                 </label>
                 <label className="flex items-center gap-2 text-sm text-zinc-300">
-                  <input type="checkbox" checked={item.available} onChange={(e) => update(item, { available: e.target.checked })} />
+                  <input
+                    type="checkbox"
+                    checked={item.available}
+                    onChange={(e) => update(item, { available: e.target.checked })}
+                  />
                   Disponible
                 </label>
-                <AdminButton variant="danger" onClick={() => remove(item)} aria-label={`Eliminar ${item.name}`} className="px-3">
+                <AdminButton
+                  variant="danger"
+                  onClick={() => remove(item)}
+                  aria-label={`Eliminar ${item.name}`}
+                  className="px-3"
+                >
                   <Trash2 className="h-4 w-4" />
                 </AdminButton>
               </div>

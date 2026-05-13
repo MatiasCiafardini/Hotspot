@@ -11,7 +11,10 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Hotspot - Hamburguesas street food" },
-      { name: "description", content: "Hamburguesas urbanas con sabor de barrio. Pedi online, retira o pedi delivery." },
+      {
+        name: "description",
+        content: "Hamburguesas urbanas con sabor de barrio. Pedi online, retira o pedi delivery.",
+      },
       { property: "og:title", content: "Hotspot - Hamburguesas street food" },
       { property: "og:image", content: "/src/assets/burger-double.jpg" },
     ],
@@ -47,8 +50,7 @@ function HomePage() {
               <span className="inline-block bg-foreground px-3 text-background -rotate-1">
                 con bronca
               </span>
-              <br />
-              y sabor.
+              <br />y sabor.
             </motion.h1>
 
             <motion.p
@@ -57,8 +59,8 @@ function HomePage() {
               transition={{ delay: 0.4 }}
               className="max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg"
             >
-              Burgers hechas al momento, panes esponjosos y salsas de receta propia.
-              Sin vueltas. Sin fancy. Solo sabor de calle.
+              Burgers hechas al momento, panes esponjosos y salsas de receta propia. Sin vueltas.
+              Sin fancy. Solo sabor de calle.
             </motion.p>
 
             <motion.div
@@ -85,9 +87,15 @@ function HomePage() {
               transition={{ delay: 0.7 }}
               className="flex flex-wrap gap-x-4 gap-y-2 pt-4 text-xs font-display uppercase sm:text-sm"
             >
-              <span className="flex items-center gap-2"><Truck className="h-4 w-4 text-primary" /> Delivery</span>
-              <span className="flex items-center gap-2"><Star className="h-4 w-4 text-primary" /> 4.9 / 5</span>
-              <span className="flex items-center gap-2"><Flame className="h-4 w-4 text-primary" /> Carne 100%</span>
+              <span className="flex items-center gap-2">
+                <Truck className="h-4 w-4 text-primary" /> Delivery
+              </span>
+              <span className="flex items-center gap-2">
+                <Star className="h-4 w-4 text-primary" /> 4.9 / 5
+              </span>
+              <span className="flex items-center gap-2">
+                <Flame className="h-4 w-4 text-primary" /> Carne 100%
+              </span>
             </motion.div>
           </div>
 
@@ -114,7 +122,9 @@ function HomePage() {
               animate={{ scale: 1, rotate: -15 }}
               transition={{ type: "spring", stiffness: 280, damping: 14, delay: 0.7 }}
             >
-              <Sticker color="mustard" rotate={-8}>NUEVO</Sticker>
+              <Sticker color="mustard" rotate={-8}>
+                NUEVO
+              </Sticker>
             </motion.div>
             <motion.div
               className="absolute -bottom-3 right-2 z-20 md:-bottom-4 md:-right-4"
@@ -122,7 +132,9 @@ function HomePage() {
               animate={{ scale: 1, rotate: 8 }}
               transition={{ type: "spring", stiffness: 280, damping: 14, delay: 0.9 }}
             >
-              <Sticker color="ink" rotate={4}>TOP 1</Sticker>
+              <Sticker color="ink" rotate={4}>
+                TOP 1
+              </Sticker>
             </motion.div>
           </div>
         </div>
@@ -136,8 +148,14 @@ function HomePage() {
           <div className="grid gap-6 md:grid-cols-3">
             {[
               { t: "Carne fresca", d: "Cortes locales, hechos al momento sobre plancha caliente." },
-              { t: "Pan artesanal", d: "Brioche y bun negro horneados todos los días en el barrio." },
-              { t: "Salsas de la casa", d: "Recetas propias. Picantes, dulces, ahumadas. Vos elegís." },
+              {
+                t: "Pan artesanal",
+                d: "Brioche y bun negro horneados todos los días en el barrio.",
+              },
+              {
+                t: "Salsas de la casa",
+                d: "Recetas propias. Picantes, dulces, ahumadas. Vos elegís.",
+              },
             ].map((f, i) => (
               <motion.div
                 key={f.t}

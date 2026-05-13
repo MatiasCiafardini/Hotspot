@@ -46,7 +46,9 @@ function ContactPage() {
       <div className="flex gap-2 mb-4">
         <Sticker color="mustard">Encontranos</Sticker>
       </div>
-      <h1 className="font-display text-5xl md:text-7xl mb-10">Pasá por el <span className="bg-ink text-cream px-2 -rotate-1 inline-block">spot</span></h1>
+      <h1 className="font-display text-5xl md:text-7xl mb-10">
+        Pasá por el <span className="bg-ink text-cream px-2 -rotate-1 inline-block">spot</span>
+      </h1>
 
       <div className="grid gap-6 md:grid-cols-2">
         {CONTACT_ITEMS.map(({ Icon, title, body, href }) => {
@@ -57,7 +59,11 @@ function ContactPage() {
               </div>
               <div>
                 <h3 className="font-display text-2xl">{title}</h3>
-                <p className={`text-muted-foreground ${href ? "group-hover:text-primary transition-colors" : ""}`}>{body}</p>
+                <p
+                  className={`text-muted-foreground ${href ? "group-hover:text-primary transition-colors" : ""}`}
+                >
+                  {body}
+                </p>
               </div>
             </div>
           );

@@ -15,9 +15,21 @@ export function Footer() {
         <div>
           <h4 className="font-display text-xl mb-3">Menú</h4>
           <ul className="space-y-1 text-sm text-foreground/80">
-            <li><TransitionLink to="/menu" className="hover:text-primary-glow">Hamburguesas</TransitionLink></li>
-            <li><TransitionLink to="/menu" className="hover:text-primary-glow">Sides</TransitionLink></li>
-            <li><TransitionLink to="/menu" className="hover:text-primary-glow">Bebidas</TransitionLink></li>
+            <li>
+              <TransitionLink to="/menu" className="hover:text-primary-glow">
+                Hamburguesas
+              </TransitionLink>
+            </li>
+            <li>
+              <TransitionLink to="/menu" className="hover:text-primary-glow">
+                Sides
+              </TransitionLink>
+            </li>
+            <li>
+              <TransitionLink to="/menu" className="hover:text-primary-glow">
+                Bebidas
+              </TransitionLink>
+            </li>
           </ul>
         </div>
         <div>
@@ -34,7 +46,10 @@ export function Footer() {
               </a>
             </li>
             <li>
-              <a href="tel:+5492326494882" className="flex items-center gap-2 hover:text-primary transition-colors">
+              <a
+                href="tel:+5492326494882"
+                className="flex items-center gap-2 hover:text-primary transition-colors"
+              >
                 <Phone className="h-4 w-4 shrink-0" /> +54 9 2326 49-4882
               </a>
             </li>

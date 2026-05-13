@@ -54,12 +54,20 @@ function loadGoogleScript() {
       }
 
       if (existing.dataset.loaded === "true") {
-        window.setTimeout(() => (window.google?.accounts?.id ? resolve() : reject(new Error("No pudimos cargar Google."))), 0);
+        window.setTimeout(
+          () =>
+            window.google?.accounts?.id
+              ? resolve()
+              : reject(new Error("No pudimos cargar Google.")),
+          0,
+        );
         return;
       }
 
       existing.addEventListener("load", () => resolve(), { once: true });
-      existing.addEventListener("error", () => reject(new Error("No pudimos cargar Google.")), { once: true });
+      existing.addEventListener("error", () => reject(new Error("No pudimos cargar Google.")), {
+        once: true,
+      });
       return;
     }
 
@@ -83,7 +91,11 @@ function getRedirect(fallback: string) {
   return value?.startsWith("/") ? value : fallback;
 }
 
-export function GoogleLoginButton({ redirectTo, className, text = "continue_with" }: GoogleLoginButtonProps) {
+export function GoogleLoginButton({
+  redirectTo,
+  className,
+  text = "continue_with",
+}: GoogleLoginButtonProps) {
   const buttonRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
   const { googleLogin } = useCustomerAuth();
@@ -119,7 +131,9 @@ export function GoogleLoginButton({ redirectTo, className, text = "continue_with
               await googleLogin(response.credential);
               await navigate({ to: target as any });
             } catch (err) {
-              setError(err instanceof Error ? err.message : "No pudimos iniciar sesion con Google.");
+              setError(
+                err instanceof Error ? err.message : "No pudimos iniciar sesion con Google.",
+              );
             } finally {
               setBusy(false);
             }
@@ -146,7 +160,9 @@ export function GoogleLoginButton({ redirectTo, className, text = "continue_with
   return (
     <div className={className}>
       <div className={busy ? "pointer-events-none opacity-60" : undefined} ref={buttonRef} />
-      {error && <p className="mt-2 border border-red-500 bg-red-500/10 p-3 text-sm text-red-700">{error}</p>}
+      {error && (
+        <p className="mt-2 border border-red-500 bg-red-500/10 p-3 text-sm text-red-700">{error}</p>
+      )}
     </div>
   );
 }

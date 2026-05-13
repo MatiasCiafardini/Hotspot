@@ -10,10 +10,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
-    meta: [
-      { title: "Acceso dueño - Hotspot" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Acceso dueño - Hotspot" }, { name: "robots", content: "noindex" }],
   }),
   component: AdminLogin,
 });
@@ -92,9 +89,10 @@ function AdminLogin() {
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
       if (error) {
-        const text = error.message === "Email not confirmed"
-          ? "Tenés que confirmar el email antes de entrar."
-          : "No pudimos entrar. Revisá que el email y la contraseña sean exactamente los mismos que usaste al registrarte.";
+        const text =
+          error.message === "Email not confirmed"
+            ? "Tenés que confirmar el email antes de entrar."
+            : "No pudimos entrar. Revisá que el email y la contraseña sean exactamente los mismos que usaste al registrarte.";
         setMessage(text);
         toast.error(text);
         setLoading(false);
@@ -182,9 +180,13 @@ function AdminLogin() {
         )}
       </motion.div>
 
-      <h1 className="font-display text-4xl mb-1 text-center">{mode === "login" ? "Entrá" : "Primer acceso"}</h1>
+      <h1 className="font-display text-4xl mb-1 text-center">
+        {mode === "login" ? "Entrá" : "Primer acceso"}
+      </h1>
       <p className="text-muted-foreground mb-6 text-center text-sm">
-        {mode === "login" ? "Entrá con tu cuenta para administrar." : "Creá una cuenta para entrar al panel."}
+        {mode === "login"
+          ? "Entrá con tu cuenta para administrar."
+          : "Creá una cuenta para entrar al panel."}
       </p>
 
       <form onSubmit={submit} className="w-full sticker-lg bg-card p-6 space-y-3">

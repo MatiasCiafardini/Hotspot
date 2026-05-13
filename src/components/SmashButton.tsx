@@ -33,9 +33,11 @@ export const SmashButton = forwardRef<HTMLButtonElement, Props>(
         className={`group relative inline-flex items-center justify-center gap-2 border font-display uppercase tracking-wide shadow-[0_12px_24px_-18px_var(--ink)] hover:shadow-[0_18px_32px_-22px_var(--ink)] active:shadow-[0_8px_16px_-16px_var(--ink)] transition-shadow ${variants[variant]} ${sizes[size]} ${glow ? "animate-pulse-glow" : ""} ${className}`}
         {...(rest as any)}
       >
-        <span className="group-hover:animate-shake-soft inline-flex items-center gap-2">{children}</span>
+        <span className="group-hover:animate-shake-soft inline-flex items-center gap-2">
+          {children}
+        </span>
       </motion.button>
     );
-  }
+  },
 );
 SmashButton.displayName = "SmashButton";

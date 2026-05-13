@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   categoryAvailableForShift,
@@ -66,9 +66,12 @@ function MenuPage() {
     () => new Map(categories.map((category) => [category.key, category])),
     [categories],
   );
-  const isProductAvailableNow = (product: Product) =>
-    settings.is_open &&
-    categoryAvailableForShift(categoryMap.get(product.category), currentShift as MenuShift);
+  const isProductAvailableNow = useCallback(
+    (product: Product) =>
+      settings.is_open &&
+      categoryAvailableForShift(categoryMap.get(product.category), currentShift as MenuShift),
+    [categoryMap, currentShift, settings.is_open],
+  );
   const unavailableIngredientMap = useMemo(() => {
     const unavailable = new Set(
       stockItems
@@ -93,7 +96,7 @@ function MenuPage() {
     return [...visible].sort(
       (a, b) => Number(isProductAvailableNow(b)) - Number(isProductAvailableNow(a)),
     );
-  }, [products, active, categoryMap, currentShift, settings.is_open]);
+  }, [products, active, isProductAvailableNow]);
 
   return (
     <section className="mx-auto max-w-7xl px-4 pb-12 pt-10 md:px-6 md:pt-12">

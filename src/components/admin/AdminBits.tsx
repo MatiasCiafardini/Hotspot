@@ -16,7 +16,9 @@ export function AdminPageHeader({
   return (
     <div className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-6 md:flex-row md:items-end md:justify-between">
       <div>
-        <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-orange-300">{eyebrow}</p>
+        <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-orange-300">
+          {eyebrow}
+        </p>
         <h1 className="font-display text-4xl text-white md:text-6xl">{title}</h1>
         {description && <p className="mt-2 max-w-2xl text-sm text-zinc-400">{description}</p>}
       </div>
@@ -65,7 +67,8 @@ export function AdminButton({
       className={cn(
         "inline-flex min-h-10 items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
         variant === "primary" && "border-orange-400 bg-orange-500 text-black hover:bg-orange-400",
-        variant === "ghost" && "border-white/15 bg-zinc-900 text-zinc-100 hover:border-orange-400/50 hover:text-orange-200",
+        variant === "ghost" &&
+          "border-white/15 bg-zinc-900 text-zinc-100 hover:border-orange-400/50 hover:text-orange-200",
         variant === "danger" && "border-red-400/40 bg-red-500/15 text-red-100 hover:bg-red-500/25",
         className,
       )}

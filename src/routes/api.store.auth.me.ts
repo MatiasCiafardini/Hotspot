@@ -1,5 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { getCurrentCustomer, json, methodNotAllowed, publicCustomer } from "@/lib/server/customer-auth";
+import {
+  getCurrentCustomer,
+  json,
+  methodNotAllowed,
+  publicCustomer,
+} from "@/lib/server/customer-auth";
 
 export const Route = createFileRoute("/api/store/auth/me")({
   server: {

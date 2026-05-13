@@ -1,4 +1,10 @@
-import { Outlet, createRootRoute, HeadContent, Scripts, useRouterState } from "@tanstack/react-router";
+import {
+  Outlet,
+  createRootRoute,
+  HeadContent,
+  Scripts,
+  useRouterState,
+} from "@tanstack/react-router";
 import appCss from "../styles.css?url";
 import { CartProvider } from "@/lib/cart";
 import { Header } from "@/components/Header";
@@ -30,7 +36,10 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Hotspot - Burgers y street food" },
-      { name: "description", content: "Hamburguesas urbanas, sabor de barrio. Pedi online y retira o te lo llevamos." },
+      {
+        name: "description",
+        content: "Hamburguesas urbanas, sabor de barrio. Pedi online y retira o te lo llevamos.",
+      },
       { name: "theme-color", content: "#f28c28" },
       { property: "og:title", content: "Hotspot - Burgers y street food" },
       { property: "og:description", content: "Hamburguesas urbanas, sabor de barrio." },
@@ -67,7 +76,9 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  const isAdmin = useRouterState({ select: (state) => state.location.pathname.startsWith("/admin") });
+  const isAdmin = useRouterState({
+    select: (state) => state.location.pathname.startsWith("/admin"),
+  });
 
   return (
     <CartProvider>
