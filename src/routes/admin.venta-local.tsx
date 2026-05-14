@@ -619,12 +619,15 @@ function CustomizeDialog({
     added.reduce((sum, ingredient) => sum + extraIngredientPrice(product, ingredient), 0);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/75 p-3 sm:p-4"
+      onClick={onClose}
+    >
       <div
-        className="mx-auto mt-6 max-w-2xl rounded-lg border border-orange-400/30 bg-zinc-950 p-5 shadow-2xl"
+        className="my-4 flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-lg border border-orange-400/30 bg-zinc-950 shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-4">
+        <div className="shrink-0 flex items-start justify-between gap-4 border-b border-white/10 p-5 pb-4">
           <div>
             <p className="text-xs font-bold uppercase text-orange-300">Personalizar</p>
             <h2 className="font-display text-4xl leading-none text-white">{product.name}</h2>
@@ -640,7 +643,7 @@ function CustomizeDialog({
           </button>
         </div>
 
-        <div className="mt-5 grid gap-5">
+        <div className="grid flex-1 gap-5 overflow-y-auto px-5 py-5">
           <div>
             <p className="mb-2 text-sm font-semibold text-zinc-300">Cantidad</p>
             <div className="flex items-center gap-2">
@@ -742,7 +745,7 @@ function CustomizeDialog({
           </AdminField>
         </div>
 
-        <div className="mt-5 flex flex-col gap-2 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="shrink-0 flex flex-col gap-2 border-t border-white/10 p-5 pt-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="font-display text-3xl text-white">{formatMoney(unitPrice * quantity)}</p>
           <AdminButton onClick={onSubmit}>Sumar a comanda</AdminButton>
         </div>
