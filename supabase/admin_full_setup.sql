@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS public.products (
   stock_quantity INTEGER NOT NULL DEFAULT 0,
   low_stock_threshold INTEGER NOT NULL DEFAULT 5,
   ingredients TEXT[] NOT NULL DEFAULT '{}',
+  extra_ingredient_prices JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -98,7 +99,10 @@ CREATE TABLE IF NOT EXISTS public.orders (
   customer_phone TEXT NOT NULL,
   customer_address TEXT,
   delivery_method TEXT NOT NULL DEFAULT 'pickup',
+  delivery_time TIME,
   payment_method TEXT DEFAULT 'efectivo',
+  payment_cash_amount NUMERIC(10,2),
+  payment_transfer_amount NUMERIC(10,2),
   payment_status TEXT NOT NULL DEFAULT 'pending',
   payment_receipt_url TEXT,
   notes TEXT,
@@ -107,6 +111,16 @@ CREATE TABLE IF NOT EXISTS public.orders (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.orders
+  ADD COLUMN IF NOT EXISTS delivery_time TIME;
+
+ALTER TABLE public.products
+  ADD COLUMN IF NOT EXISTS extra_ingredient_prices JSONB NOT NULL DEFAULT '{}'::jsonb;
+
+ALTER TABLE public.orders
+  ADD COLUMN IF NOT EXISTS payment_cash_amount NUMERIC(10,2),
+  ADD COLUMN IF NOT EXISTS payment_transfer_amount NUMERIC(10,2);
 
 CREATE TABLE IF NOT EXISTS public.order_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

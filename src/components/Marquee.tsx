@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 
 const ITEMS = [
   "HOTSPOT NIGHT",
-  "DELIVERY 24/7",
+  "MADRUGADA HASTA 05",
   "2X1 EN SHAKES",
   "NUEVO: FUEGO CALLEJERO",
   "NUESTRAS BURGERS",

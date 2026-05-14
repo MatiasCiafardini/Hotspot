@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { json, methodNotAllowed } from "@/lib/server/customer-auth";
 import { requireAdminOwner } from "@/lib/server/admin-auth";
 import { DEFAULT_STORE_ID } from "@/lib/server/customer-session";
+import { MENU_SHIFTS, type MenuShift } from "@/lib/products";
 
 const CLOSABLE_STATUSES = ["delivered", "rejected", "cancelled"];
 
@@ -47,7 +48,7 @@ export const Route = createFileRoute("/api/admin/day")({
         const action = body?.action;
 
         if (action === "start") {
-          const shift = body?.shift === "lunch" ? "lunch" : "dinner";
+          const shift = MENU_SHIFTS.includes(body?.shift) ? (body.shift as MenuShift) : "dinner";
           const now = new Date().toISOString();
           const { data, error } = await (supabaseAdmin as any)
             .from("store_settings")

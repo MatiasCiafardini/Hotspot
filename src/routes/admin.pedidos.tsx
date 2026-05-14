@@ -8,6 +8,8 @@ import {
   buildOrderConfirmedWhatsAppUrl,
   DEFAULT_SETTINGS,
   formatDateTime,
+  formatDeliveryTime,
+  formatIngredientList,
   formatMoney,
   ORDER_STATUS_CLASS,
   ORDER_STATUS_LABEL,
@@ -44,6 +46,13 @@ const AUTO_REFRESH_MS = 4000;
 
 function getActiveOrders(orders: AdminOrder[]) {
   return orders.filter((order) => ACTIVE_ORDER_STATUSES.includes(order.status));
+}
+
+function formatPaymentMethod(order: AdminOrder) {
+  if (order.payment_method !== "dividido") return order.payment_method || "A confirmar";
+  return `dividido (${formatMoney(order.payment_cash_amount || 0)} efectivo / ${formatMoney(
+    order.payment_transfer_amount || 0,
+  )} transferencia)`;
 }
 
 function OrdersPage() {
@@ -215,6 +224,11 @@ function OrdersPage() {
                       </span>
                     </div>
                     <h2 className="mt-2 font-display text-3xl text-white">{order.customer_name}</h2>
+                    {order.delivery_time && (
+                      <p className="mt-1 text-sm font-semibold text-orange-200">
+                        Horario de entrega {formatDeliveryTime(order.delivery_time)}
+                      </p>
+                    )}
                     <p className="mt-1 text-sm text-zinc-400">
                       Tel {order.customer_phone}
                       {order.customer_address
@@ -284,13 +298,13 @@ function OrdersPage() {
                       <p>
                         Quitados:{" "}
                         {item.removed_ingredients?.length
-                          ? item.removed_ingredients.join(", ")
+                          ? formatIngredientList(item.removed_ingredients)
                           : "Ninguno"}
                       </p>
                       <p>
                         Agregados:{" "}
                         {item.added_ingredients?.length
-                          ? item.added_ingredients.join(", ")
+                          ? formatIngredientList(item.added_ingredients)
                           : "Ninguno"}
                       </p>
                       <p>Obs: {item.item_notes || "Sin observaciones"}</p>
@@ -360,7 +374,8 @@ function OrderDetail({ order, onClose }: { order: AdminOrder; onClose: () => voi
         <div className="mt-4 grid gap-3 text-sm text-zinc-300">
           <p>Telefono: {order.customer_phone}</p>
           <p>Direccion: {order.customer_address || "Retiro en local"}</p>
-          <p>Metodo de pago: {order.payment_method || "A confirmar"}</p>
+          <p>Horario de entrega: {formatDeliveryTime(order.delivery_time) || "Sin horario"}</p>
+          <p>Metodo de pago: {formatPaymentMethod(order)}</p>
           <p>Estado de pago: {PAYMENT_STATUS_LABEL[order.payment_status || "pending"]}</p>
           <p>Notas: {order.notes || "Sin notas"}</p>
         </div>
@@ -374,10 +389,10 @@ function OrderDetail({ order, onClose }: { order: AdminOrder; onClose: () => voi
                 Ingredientes base: {item.base_ingredients?.join(", ") || "Sin detalle"}
               </p>
               <p className="text-sm text-zinc-400">
-                Quitados: {item.removed_ingredients?.join(", ") || "Ninguno"}
+                Quitados: {formatIngredientList(item.removed_ingredients) || "Ninguno"}
               </p>
               <p className="text-sm text-zinc-400">
-                Agregados: {item.added_ingredients?.join(", ") || "Ninguno"}
+                Agregados: {formatIngredientList(item.added_ingredients) || "Ninguno"}
               </p>
               <p className="text-sm text-zinc-400">
                 Observaciones: {item.item_notes || "Sin observaciones"}

@@ -9,7 +9,12 @@ import { Sticker } from "@/components/Sticker";
 import { toast } from "sonner";
 import { GoogleLoginButton } from "@/components/GoogleLoginButton";
 import { useRouteTransition } from "@/components/RouteTransitionProvider";
-import { DEFAULT_SETTINGS, formatMoney, type StoreSettings } from "@/lib/admin";
+import {
+  DEFAULT_SETTINGS,
+  formatIngredientList,
+  formatMoney,
+  type StoreSettings,
+} from "@/lib/admin";
 import { useCustomerAuth } from "@/lib/customer-auth";
 
 export const Route = createFileRoute("/checkout")({
@@ -32,6 +37,7 @@ async function createOrder(input: {
   customerPhone: string;
   deliveryMethod: "pickup" | "delivery";
   customerAddress: string | null;
+  deliveryTime: string | null;
   notes: string | null;
   total: number;
   items: CheckoutItem[];
@@ -70,6 +76,7 @@ function CheckoutPage() {
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [loginSubmitting, setLoginSubmitting] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [showDeliveryTime, setShowDeliveryTime] = useState(false);
   const { navigateWithTransition } = useRouteTransition();
 
   const [form, setForm] = useState({
@@ -77,8 +84,10 @@ function CheckoutPage() {
     phone: "",
     method: "pickup" as "pickup" | "delivery",
     address: "",
+    deliveryTime: "",
     notes: "",
   });
+  const midnightOnlyPickup = settings.current_menu_shift === "midnight";
   const orderTotal = total + (form.method === "delivery" ? DELIVERY_FEE : 0);
   const storeOpen = settings.is_open === true;
 
@@ -101,6 +110,12 @@ function CheckoutPage() {
         setSettings(DEFAULT_SETTINGS);
       });
   }, []);
+
+  useEffect(() => {
+    if (midnightOnlyPickup && form.method !== "pickup") {
+      setForm((current) => ({ ...current, method: "pickup", address: "" }));
+    }
+  }, [form.method, midnightOnlyPickup]);
 
   useEffect(() => {
     if (step !== 2 || done || submitting || transferSeconds <= 0) return;
@@ -151,6 +166,7 @@ function CheckoutPage() {
         customerPhone: form.phone,
         customerAddress: form.method === "delivery" ? form.address : null,
         deliveryMethod: form.method,
+        deliveryTime: showDeliveryTime && form.deliveryTime ? form.deliveryTime : null,
         notes: form.notes || null,
         total: orderTotal,
         items,
@@ -387,17 +403,26 @@ function CheckoutPage() {
                   {(["pickup", "delivery"] as const).map((m) => (
                     <button
                       key={m}
-                      onClick={() => setForm({ ...form, method: m })}
+                      onClick={() => {
+                        if (midnightOnlyPickup && m === "delivery") return;
+                        setForm({ ...form, method: m });
+                      }}
+                      disabled={midnightOnlyPickup && m === "delivery"}
                       className={`border p-4 font-display uppercase shadow-[0_10px_20px_-18px_var(--ink)] transition-all ${
                         form.method === m
                           ? "border-primary bg-primary text-primary-foreground"
                           : "border-ink bg-background"
-                      }`}
+                      } disabled:cursor-not-allowed disabled:opacity-40`}
                     >
                       {m === "pickup" ? "Retiro" : "Delivery"}
                     </button>
                   ))}
                 </div>
+                {midnightOnlyPickup && (
+                  <p className="border border-primary bg-primary/10 p-3 text-sm text-muted-foreground">
+                    En el turno madrugada solo tomamos pedidos para retiro.
+                  </p>
+                )}
                 {form.method === "delivery" && (
                   <input
                     className="w-full border border-ink bg-background px-4 py-3 font-body focus:outline-none focus:border-primary"
@@ -406,6 +431,47 @@ function CheckoutPage() {
                     onChange={(e) => setForm({ ...form, address: e.target.value })}
                   />
                 )}
+                <div className="border border-ink/20 bg-background/70 p-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowDeliveryTime((current) => !current)}
+                    className={`flex w-full items-center justify-between gap-3 border px-4 py-3 text-left transition-all ${
+                      showDeliveryTime
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-ink bg-card hover:border-primary"
+                    }`}
+                  >
+                    <span>
+                      <span className="block font-display text-xl uppercase">
+                        Horario de entrega
+                      </span>
+                      <span className="block text-xs opacity-80">
+                        Opcional, para pedir ahora y recibirlo mas tarde.
+                      </span>
+                    </span>
+                    <Clock className="h-5 w-5 shrink-0" />
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {showDeliveryTime && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <label className="mt-3 block">
+                          <span className="mb-1 block text-xs font-bold uppercase text-muted-foreground">
+                            Elegi la hora
+                          </span>
+                          <CheckoutTimePicker
+                            value={form.deliveryTime}
+                            onChange={(value) => setForm({ ...form, deliveryTime: value })}
+                          />
+                        </label>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
                 <textarea
                   className="w-full border border-ink bg-background px-4 py-3 font-body focus:outline-none focus:border-primary min-h-[100px]"
                   placeholder="Notas (sin cebolla, extra picante…)"
@@ -458,7 +524,12 @@ function CheckoutPage() {
                         </p>
                         {i.removed_ingredients.length > 0 && (
                           <p className="text-xs text-muted-foreground">
-                            Sin: {i.removed_ingredients.join(", ")}
+                            Sin: {formatIngredientList(i.removed_ingredients)}
+                          </p>
+                        )}
+                        {i.added_ingredients.length > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            Extra: {formatIngredientList(i.added_ingredients)}
                           </p>
                         )}
                       </div>
@@ -472,6 +543,12 @@ function CheckoutPage() {
                     <span className="font-display text-xl text-ink">
                       {formatMoney(DELIVERY_FEE)}
                     </span>
+                  </div>
+                )}
+                {showDeliveryTime && form.deliveryTime && (
+                  <div className="flex justify-between border-t border-ink/20 pt-3">
+                    <span className="font-display text-xl">Horario entrega</span>
+                    <span className="font-display text-xl text-ink">{form.deliveryTime}</span>
                   </div>
                 )}
                 <div className="flex justify-between border-t border-ink pt-3">
@@ -508,5 +585,72 @@ function CheckoutPage() {
         </div>
       </div>
     </section>
+  );
+}
+
+function CheckoutTimePicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [hour = "20", minute = "00"] = value ? value.split(":") : ["20", "00"];
+  const hours = Array.from({ length: 24 }, (_, index) => String(index).padStart(2, "0"));
+  const minutes = Array.from({ length: 12 }, (_, index) => String(index * 5).padStart(2, "0"));
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className="flex min-h-14 w-full items-center gap-3 border border-ink bg-background px-4 py-3 text-left font-display text-3xl text-ink transition-colors hover:border-primary focus:border-primary focus:outline-none"
+      >
+        <Clock className="h-5 w-5 text-primary" />
+        {value || "Elegir hora"}
+      </button>
+      {open && (
+        <div className="absolute left-0 right-0 z-30 mt-2 border border-ink bg-background p-3 shadow-[0_18px_40px_-22px_var(--ink)]">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="max-h-52 overflow-y-auto pr-1">
+              {hours.map((option) => (
+                <button
+                  type="button"
+                  key={option}
+                  onClick={() => onChange(`${option}:${minute}`)}
+                  className={`mb-1 min-h-9 w-full px-3 text-center font-mono text-sm transition-colors ${
+                    option === hour
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-card text-ink hover:bg-primary/15"
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+            <div className="max-h-52 overflow-y-auto pr-1">
+              {minutes.map((option) => (
+                <button
+                  type="button"
+                  key={option}
+                  onClick={() => {
+                    onChange(`${hour}:${option}`);
+                    setOpen(false);
+                  }}
+                  className={`mb-1 min-h-9 w-full px-3 text-center font-mono text-sm transition-colors ${
+                    option === minute
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-card text-ink hover:bg-primary/15"
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

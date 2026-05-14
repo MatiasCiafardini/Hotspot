@@ -6,6 +6,7 @@ import { resolveImage } from "@/lib/products";
 import { SmashButton } from "./SmashButton";
 import { TransitionLink } from "@/components/RouteTransitionProvider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { buildExtraIngredientOptions, formatIngredientList, formatMoney } from "@/lib/admin";
 
 const LOCKED_INGREDIENTS = ["pan", "carne", "medallon", "medallón"];
 
@@ -92,7 +93,12 @@ export function CartDrawer() {
                             </p>
                             {item.removed_ingredients.length > 0 && (
                               <p className="text-xs text-muted-foreground truncate">
-                                Sin: {item.removed_ingredients.join(", ")}
+                                Sin: {formatIngredientList(item.removed_ingredients)}
+                              </p>
+                            )}
+                            {item.added_ingredients.length > 0 && (
+                              <p className="text-xs text-muted-foreground truncate">
+                                Extra: {formatIngredientList(item.added_ingredients)}
                               </p>
                             )}
                             <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -177,14 +183,18 @@ function CustomizeDialog({
 }: {
   item: CartItem | null;
   onClose: () => void;
-  onSave: (patch: Pick<CartItem, "removed_ingredients" | "item_notes">) => void;
+  onSave: (
+    patch: Pick<CartItem, "removed_ingredients" | "added_ingredients" | "item_notes" | "price">,
+  ) => void;
 }) {
   const [removed, setRemoved] = useState<string[]>([]);
+  const [added, setAdded] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
     if (!item) return;
     setRemoved(item.removed_ingredients.filter(canRemoveIngredient));
+    setAdded(item.added_ingredients);
     setNotes(item.item_notes);
   }, [item]);
 
@@ -198,6 +208,26 @@ function CustomizeDialog({
         : current.filter((currentIngredient) => currentIngredient !== ingredient),
     );
   };
+
+  const changeAddedIngredient = (ingredient: string, delta: number) => {
+    setAdded((current) => {
+      if (delta > 0) return [...current, ingredient];
+      const index = current.lastIndexOf(ingredient);
+      if (index === -1) return current;
+      return current.filter((_, currentIndex) => currentIndex !== index);
+    });
+  };
+
+  const basePrice = Number(item.base_price ?? item.price);
+  const extraOptions = buildExtraIngredientOptions(
+    item.base_ingredients,
+    item.extra_ingredient_prices ?? {},
+  );
+  const extraPriceMap = Object.fromEntries(
+    extraOptions.map((ingredient) => [ingredient.name, ingredient.price]),
+  );
+  const unitPrice =
+    basePrice + added.reduce((sum, ingredient) => sum + Number(extraPriceMap[ingredient] ?? 0), 0);
 
   return (
     <Dialog
@@ -249,6 +279,44 @@ function CustomizeDialog({
               })}
             </div>
           </div>
+          <div>
+            <p className="mb-2 text-sm font-bold uppercase text-muted-foreground">Agregar extras</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {extraOptions.map((ingredient) => {
+                const count = added.filter((current) => current === ingredient.name).length;
+                return (
+                  <div
+                    key={ingredient.name}
+                    className="flex min-h-12 items-center justify-between gap-3 rounded-md border border-ink/30 bg-card p-3 text-sm"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate">{ingredient.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        Extra {formatMoney(ingredient.price)}
+                      </span>
+                    </span>
+                    <span className="inline-flex h-9 items-center border border-ink">
+                      <button
+                        type="button"
+                        onClick={() => changeAddedIngredient(ingredient.name, -1)}
+                        className="flex h-full w-8 items-center justify-center hover:bg-ink hover:text-cream"
+                      >
+                        <Minus className="h-3 w-3" />
+                      </button>
+                      <span className="w-8 text-center font-display text-sm">{count}</span>
+                      <button
+                        type="button"
+                        onClick={() => changeAddedIngredient(ingredient.name, 1)}
+                        className="flex h-full w-8 items-center justify-center hover:bg-ink hover:text-cream"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </button>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
           <textarea
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
@@ -259,7 +327,9 @@ function CustomizeDialog({
             onClick={() =>
               onSave({
                 removed_ingredients: removed.filter(canRemoveIngredient),
+                added_ingredients: added,
                 item_notes: notes,
+                price: unitPrice,
               })
             }
             className="w-full"

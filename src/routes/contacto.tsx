@@ -35,7 +35,7 @@ const CONTACT_ITEMS = [
   {
     Icon: Clock,
     title: "Horarios",
-    body: "Mié–Dom · 19:00 a 02:00",
+    body: "Mie-Sab 11:30-14:30 y 19:30-23:30. Dom 19:00-23:30. Vie-Sab: madrugada hasta 05:00, solo retiro.",
     href: null,
   },
 ] as const;

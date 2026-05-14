@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { Flame, Truck, Star, ArrowRight } from "lucide-react";
+import { Flame, Truck, Star, ArrowRight, Clock } from "lucide-react";
 import heroImg from "@/assets/burger-double.jpg";
 import { SmashButton } from "@/components/SmashButton";
 import { Sticker } from "@/components/Sticker";
@@ -141,6 +141,52 @@ function HomePage() {
       </section>
 
       <Marquee />
+
+      {/* Schedule */}
+      <section className="border-b border-ink bg-card py-12">
+        <div className="mx-auto grid max-w-7xl gap-6 px-4 md:grid-cols-[0.8fr_1.2fr] md:px-6">
+          <div>
+            <Sticker color="mustard" rotate={-2}>
+              Horarios reales
+            </Sticker>
+            <h2 className="mt-4 font-display text-4xl leading-none md:text-6xl">
+              Cuando prende la plancha.
+            </h2>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[
+              {
+                title: "Miercoles a sabado",
+                body: "11:30 a 14:30",
+              },
+              {
+                title: "Miercoles a sabado",
+                body: "19:30 a 23:30",
+              },
+              {
+                title: "Domingo",
+                body: "19:00 a 23:30",
+              },
+              {
+                title: "Venta fines de semana",
+                body: "Viernes y sabado: cena hasta 23:30. Luego menu madrugada hasta 05:00, solo retiro.",
+              },
+            ].map((item) => (
+              <div
+                key={`${item.title}-${item.body}`}
+                className="border border-ink bg-background p-4 shadow-[8px_8px_0_var(--ink)]"
+              >
+                <div className="mb-3 flex items-center gap-2 font-display text-xl">
+                  <Clock className="h-5 w-5 text-primary" />
+                  {item.title}
+                </div>
+                <p className="text-lg font-bold text-foreground">{item.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* Features strip */}
       <section className="bg-background py-16">

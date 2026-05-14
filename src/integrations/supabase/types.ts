@@ -60,8 +60,11 @@ export type Database = {
           customer_name: string;
           customer_phone: string;
           delivery_method: string;
+          delivery_time: string | null;
           id: string;
           notes: string | null;
+          payment_cash_amount: number | null;
+          payment_transfer_amount: number | null;
           status: Database["public"]["Enums"]["order_status"];
           total: number;
           updated_at: string;
@@ -72,8 +75,11 @@ export type Database = {
           customer_name: string;
           customer_phone: string;
           delivery_method?: string;
+          delivery_time?: string | null;
           id?: string;
           notes?: string | null;
+          payment_cash_amount?: number | null;
+          payment_transfer_amount?: number | null;
           status?: Database["public"]["Enums"]["order_status"];
           total: number;
           updated_at?: string;
@@ -84,8 +90,11 @@ export type Database = {
           customer_name?: string;
           customer_phone?: string;
           delivery_method?: string;
+          delivery_time?: string | null;
           id?: string;
           notes?: string | null;
+          payment_cash_amount?: number | null;
+          payment_transfer_amount?: number | null;
           status?: Database["public"]["Enums"]["order_status"];
           total?: number;
           updated_at?: string;
@@ -99,6 +108,7 @@ export type Database = {
           category: string;
           created_at: string;
           description: string | null;
+          extra_ingredient_prices: Json;
           id: string;
           image_url: string | null;
           name: string;
@@ -112,6 +122,7 @@ export type Database = {
           category: string;
           created_at?: string;
           description?: string | null;
+          extra_ingredient_prices?: Json;
           id?: string;
           image_url?: string | null;
           name: string;
@@ -125,6 +136,7 @@ export type Database = {
           category?: string;
           created_at?: string;
           description?: string | null;
+          extra_ingredient_prices?: Json;
           id?: string;
           image_url?: string | null;
           name?: string;

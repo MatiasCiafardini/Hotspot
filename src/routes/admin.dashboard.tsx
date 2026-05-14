@@ -22,7 +22,7 @@ import {
   type AdminOrder,
   type StoreSettings,
 } from "@/lib/admin";
-import { MENU_SHIFT_LABEL, type MenuShift, type Product } from "@/lib/products";
+import { MENU_SHIFT_LABEL, MENU_SHIFTS, type MenuShift, type Product } from "@/lib/products";
 import { toast } from "sonner";
 import {
   CashSummaryDialog,
@@ -198,8 +198,11 @@ function Dashboard() {
                   onChange={(event) => setSelectedShift(event.target.value as MenuShift)}
                   className="min-h-10 rounded-md border border-white/15 bg-zinc-900 px-3 py-2 text-sm font-bold text-zinc-100 outline-none focus:border-orange-400"
                 >
-                  <option value="lunch">Mediodia</option>
-                  <option value="dinner">Cena</option>
+                  {MENU_SHIFTS.map((shift) => (
+                    <option key={shift} value={shift}>
+                      {MENU_SHIFT_LABEL[shift]}
+                    </option>
+                  ))}
                 </select>
                 <AdminButton
                   onClick={() => setDayDialog("start")}

@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Banknote,
+  Clock,
   Minus,
   Plus,
   ReceiptText,
@@ -22,7 +23,15 @@ import {
 } from "@/components/admin/AdminBits";
 import { supabase } from "@/integrations/supabase/client";
 import { adminApiFetch, readApiError } from "@/lib/admin-api";
-import { DEFAULT_SETTINGS, formatMoney, productIngredients, type StoreSettings } from "@/lib/admin";
+import {
+  DEFAULT_SETTINGS,
+  extraIngredientPrice,
+  formatIngredientList,
+  formatMoney,
+  productExtraIngredients,
+  productIngredients,
+  type StoreSettings,
+} from "@/lib/admin";
 import {
   categoryAvailableForShift,
   DEFAULT_CATEGORIES,
@@ -41,15 +50,27 @@ export const Route = createFileRoute("/admin/venta-local")({
 
 type Step = "menu" | "checkout";
 type DiscountType = "percent" | "fixed";
-type PaymentMethod = "efectivo" | "transferencia";
+type PaymentMethod = "efectivo" | "transferencia" | "dividido";
+type DeliveryMethod = "pickup" | "delivery";
 
 type CartItem = {
   id: string;
   product: Product;
   quantity: number;
   removedIngredients: string[];
+  addedIngredients: string[];
   notes: string;
 };
+
+function cartItemUnitPrice(item: CartItem) {
+  return (
+    Number(item.product.price) +
+    item.addedIngredients.reduce(
+      (sum, ingredient) => sum + extraIngredientPrice(item.product, ingredient),
+      0,
+    )
+  );
+}
 
 function LocalSalePage() {
   const navigate = useNavigate();
@@ -63,10 +84,16 @@ function LocalSalePage() {
   const [customizing, setCustomizing] = useState<Product | null>(null);
   const [customQuantity, setCustomQuantity] = useState(1);
   const [customRemoved, setCustomRemoved] = useState<string[]>([]);
+  const [customAdded, setCustomAdded] = useState<string[]>([]);
   const [customNotes, setCustomNotes] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("pickup");
+  const [customerAddress, setCustomerAddress] = useState("");
+  const [deliveryTime, setDeliveryTime] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("efectivo");
+  const [paymentCashAmount, setPaymentCashAmount] = useState(0);
+  const [paymentTransferAmount, setPaymentTransferAmount] = useState(0);
   const [discountType, setDiscountType] = useState<DiscountType>("percent");
   const [discountValue, setDiscountValue] = useState(0);
   const [notes, setNotes] = useState("");
@@ -108,6 +135,7 @@ function LocalSalePage() {
   const categoryLabel = (key: string) =>
     categories.find((category) => category.key === key)?.label ?? key;
   const currentShift = settings.current_menu_shift || "dinner";
+  const midnightOnlyPickup = currentShift === "midnight";
   const categoryMap = useMemo(
     () => new Map(categories.map((category) => [category.key, category])),
     [categories],
@@ -118,16 +146,26 @@ function LocalSalePage() {
     [categoryMap, currentShift],
   );
 
+  useEffect(() => {
+    if (midnightOnlyPickup && deliveryMethod !== "pickup") {
+      setDeliveryMethod("pickup");
+      setCustomerAddress("");
+    }
+  }, [deliveryMethod, midnightOnlyPickup]);
+
   const visibleProducts = useMemo(() => {
     const cleanQuery = query.trim().toLowerCase();
     return products
       .filter((product) => {
+        const availableForShift = isProductAvailableNow(product);
         const matchesCategory = categoryFilter === "all" || product.category === categoryFilter;
         const haystack = [product.name, product.description, productIngredients(product).join(" ")]
           .filter(Boolean)
           .join(" ")
           .toLowerCase();
-        return matchesCategory && (!cleanQuery || haystack.includes(cleanQuery));
+        return (
+          availableForShift && matchesCategory && (!cleanQuery || haystack.includes(cleanQuery))
+        );
       })
       .sort((a, b) => {
         const availabilityDiff =
@@ -136,9 +174,13 @@ function LocalSalePage() {
         return Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0);
       });
   }, [categoryFilter, isProductAvailableNow, products, query]);
+  const visibleCategories = useMemo(
+    () => categories.filter((category) => categoryAvailableForShift(category, currentShift)),
+    [categories, currentShift],
+  );
 
   const subtotal = useMemo(
-    () => cart.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0),
+    () => cart.reduce((sum, item) => sum + cartItemUnitPrice(item) * item.quantity, 0),
     [cart],
   );
   const discountAmount = useMemo(() => {
@@ -154,6 +196,7 @@ function LocalSalePage() {
     setCustomizing(product);
     setCustomQuantity(1);
     setCustomRemoved([]);
+    setCustomAdded([]);
     setCustomNotes("");
   };
 
@@ -166,6 +209,7 @@ function LocalSalePage() {
         product: customizing,
         quantity: customQuantity,
         removedIngredients: customRemoved,
+        addedIngredients: customAdded,
         notes: customNotes.trim(),
       },
     ]);
@@ -193,7 +237,12 @@ function LocalSalePage() {
     setCart([]);
     setCustomerName("");
     setCustomerPhone("");
+    setDeliveryMethod("pickup");
+    setCustomerAddress("");
+    setDeliveryTime("");
     setPaymentMethod("efectivo");
+    setPaymentCashAmount(0);
+    setPaymentTransferAmount(0);
     setDiscountType("percent");
     setDiscountValue(0);
     setNotes("");
@@ -202,8 +251,22 @@ function LocalSalePage() {
   const saveSale = async () => {
     const cleanName = customerName.trim();
     const cleanPhone = customerPhone.trim();
+    const cleanAddress = customerAddress.trim();
     if (!cleanName) return toast.error("Carga el nombre del cliente.");
+    if (midnightOnlyPickup && deliveryMethod === "delivery") {
+      return toast.error("Durante madrugada solo se permite retiro local.");
+    }
+    if (deliveryMethod === "delivery" && !cleanAddress) return toast.error("Carga la direccion.");
     if (cart.length === 0) return toast.error("Suma al menos un item.");
+    if (paymentMethod === "dividido") {
+      const splitTotal = Number(paymentCashAmount || 0) + Number(paymentTransferAmount || 0);
+      if (paymentCashAmount <= 0 || paymentTransferAmount <= 0) {
+        return toast.error("Carga cuanto paga en efectivo y cuanto por transferencia.");
+      }
+      if (Math.abs(splitTotal - total) > 0.01) {
+        return toast.error("La suma del pago dividido tiene que coincidir con el total.");
+      }
+    }
 
     setSaving(true);
     try {
@@ -212,7 +275,12 @@ function LocalSalePage() {
         body: JSON.stringify({
           customerName: cleanName,
           customerPhone: cleanPhone,
+          customerAddress: deliveryMethod === "delivery" ? cleanAddress : "",
+          deliveryMethod,
+          deliveryTime,
           paymentMethod,
+          paymentCashAmount: paymentMethod === "dividido" ? paymentCashAmount : null,
+          paymentTransferAmount: paymentMethod === "dividido" ? paymentTransferAmount : null,
           discountType,
           discountValue,
           notes: notes.trim(),
@@ -220,6 +288,7 @@ function LocalSalePage() {
             productId: item.product.id,
             quantity: item.quantity,
             removedIngredients: item.removedIngredients,
+            addedIngredients: item.addedIngredients,
             notes: item.notes.trim(),
           })),
         }),
@@ -284,7 +353,7 @@ function LocalSalePage() {
               >
                 Todos
               </FilterButton>
-              {categories.map((category) => (
+              {visibleCategories.map((category) => (
                 <FilterButton
                   key={category.key}
                   active={categoryFilter === category.key}
@@ -380,21 +449,32 @@ function LocalSalePage() {
           cart={cart}
           customerName={customerName}
           customerPhone={customerPhone}
+          customerAddress={customerAddress}
+          deliveryMethod={deliveryMethod}
+          deliveryTime={deliveryTime}
           discountAmount={discountAmount}
           discountType={discountType}
           discountValue={discountValue}
           notes={notes}
           paymentMethod={paymentMethod}
+          paymentCashAmount={paymentCashAmount}
+          paymentTransferAmount={paymentTransferAmount}
+          midnightOnlyPickup={midnightOnlyPickup}
           saving={saving}
           subtotal={subtotal}
           total={total}
           onBack={() => setStep("menu")}
           onCustomerNameChange={setCustomerName}
           onCustomerPhoneChange={setCustomerPhone}
+          onCustomerAddressChange={setCustomerAddress}
+          onDeliveryMethodChange={setDeliveryMethod}
+          onDeliveryTimeChange={setDeliveryTime}
           onDiscountTypeChange={setDiscountType}
           onDiscountValueChange={setDiscountValue}
           onNotesChange={setNotes}
           onPaymentMethodChange={setPaymentMethod}
+          onPaymentCashAmountChange={setPaymentCashAmount}
+          onPaymentTransferAmountChange={setPaymentTransferAmount}
           onRemoveItem={(itemId) =>
             setCart((current) => current.filter((item) => item.id !== itemId))
           }
@@ -409,11 +489,13 @@ function LocalSalePage() {
           product={customizing}
           quantity={customQuantity}
           removed={customRemoved}
+          added={customAdded}
           notes={customNotes}
           onClose={() => setCustomizing(null)}
           onNotesChange={setCustomNotes}
           onQuantityChange={setCustomQuantity}
           onRemovedChange={setCustomRemoved}
+          onAddedChange={setCustomAdded}
           onSubmit={addCustomizedItem}
         />
       )}
@@ -490,8 +572,10 @@ function CustomizeDialog({
   product,
   quantity,
   removed,
+  added,
   notes,
   onClose,
+  onAddedChange,
   onNotesChange,
   onQuantityChange,
   onRemovedChange,
@@ -500,14 +584,17 @@ function CustomizeDialog({
   product: Product;
   quantity: number;
   removed: string[];
+  added: string[];
   notes: string;
   onClose: () => void;
+  onAddedChange: (value: string[]) => void;
   onNotesChange: (value: string) => void;
   onQuantityChange: (value: number) => void;
   onRemovedChange: (value: string[]) => void;
   onSubmit: () => void;
 }) {
   const ingredients = productIngredients(product);
+  const extraIngredients = productExtraIngredients(product);
 
   const toggleIngredient = (ingredient: string) => {
     onRemovedChange(
@@ -516,6 +603,20 @@ function CustomizeDialog({
         : [...removed, ingredient],
     );
   };
+
+  const changeAddedIngredient = (ingredient: string, delta: number) => {
+    if (delta > 0) {
+      onAddedChange([...added, ingredient]);
+      return;
+    }
+    const index = added.lastIndexOf(ingredient);
+    if (index === -1) return;
+    onAddedChange(added.filter((_, currentIndex) => currentIndex !== index));
+  };
+
+  const unitPrice =
+    Number(product.price) +
+    added.reduce((sum, ingredient) => sum + extraIngredientPrice(product, ingredient), 0);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/75 p-4" onClick={onClose}>
@@ -527,9 +628,7 @@ function CustomizeDialog({
           <div>
             <p className="text-xs font-bold uppercase text-orange-300">Personalizar</p>
             <h2 className="font-display text-4xl leading-none text-white">{product.name}</h2>
-            <p className="mt-2 font-display text-3xl text-orange-300">
-              {formatMoney(product.price)}
-            </p>
+            <p className="mt-2 font-display text-3xl text-orange-300">{formatMoney(unitPrice)}</p>
           </div>
           <button
             type="button"
@@ -593,6 +692,47 @@ function CustomizeDialog({
             </div>
           )}
 
+          {extraIngredients.length > 0 && (
+            <div>
+              <p className="mb-2 text-sm font-semibold text-zinc-300">Agregar extras</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {extraIngredients.map((ingredient) => {
+                  const count = added.filter((item) => item === ingredient.name).length;
+                  return (
+                    <div
+                      key={ingredient.name}
+                      className="flex min-h-11 items-center justify-between gap-3 rounded-md border border-white/10 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate">{ingredient.name}</span>
+                        <span className="text-xs text-zinc-500">
+                          Extra {formatMoney(ingredient.price)}
+                        </span>
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <IconButton
+                          label={`Restar ${ingredient.name}`}
+                          onClick={() => changeAddedIngredient(ingredient.name, -1)}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </IconButton>
+                        <span className="flex h-9 min-w-9 items-center justify-center rounded-md border border-white/10 font-mono text-sm text-white">
+                          {count}
+                        </span>
+                        <IconButton
+                          label={`Sumar ${ingredient.name}`}
+                          onClick={() => changeAddedIngredient(ingredient.name, 1)}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </IconButton>
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <AdminField label="Observaciones">
             <AdminTextarea
               value={notes}
@@ -603,9 +743,7 @@ function CustomizeDialog({
         </div>
 
         <div className="mt-5 flex flex-col gap-2 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="font-display text-3xl text-white">
-            {formatMoney(Number(product.price) * quantity)}
-          </p>
+          <p className="font-display text-3xl text-white">{formatMoney(unitPrice * quantity)}</p>
           <AdminButton onClick={onSubmit}>Sumar a comanda</AdminButton>
         </div>
       </div>
@@ -615,46 +753,68 @@ function CustomizeDialog({
 
 function CheckoutStep({
   cart,
+  customerAddress,
   customerName,
   customerPhone,
+  deliveryMethod,
+  deliveryTime,
   discountAmount,
   discountType,
   discountValue,
   notes,
   paymentMethod,
+  paymentCashAmount,
+  paymentTransferAmount,
+  midnightOnlyPickup,
   saving,
   subtotal,
   total,
   onBack,
+  onCustomerAddressChange,
   onCustomerNameChange,
   onCustomerPhoneChange,
+  onDeliveryMethodChange,
+  onDeliveryTimeChange,
   onDiscountTypeChange,
   onDiscountValueChange,
   onNotesChange,
   onPaymentMethodChange,
+  onPaymentCashAmountChange,
+  onPaymentTransferAmountChange,
   onRemoveItem,
   onSave,
   onUpdateItemNotes,
   onUpdateQuantity,
 }: {
   cart: CartItem[];
+  customerAddress: string;
   customerName: string;
   customerPhone: string;
+  deliveryMethod: DeliveryMethod;
+  deliveryTime: string;
   discountAmount: number;
   discountType: DiscountType;
   discountValue: number;
   notes: string;
   paymentMethod: PaymentMethod;
+  paymentCashAmount: number;
+  paymentTransferAmount: number;
+  midnightOnlyPickup: boolean;
   saving: boolean;
   subtotal: number;
   total: number;
   onBack: () => void;
+  onCustomerAddressChange: (value: string) => void;
   onCustomerNameChange: (value: string) => void;
   onCustomerPhoneChange: (value: string) => void;
+  onDeliveryMethodChange: (value: DeliveryMethod) => void;
+  onDeliveryTimeChange: (value: string) => void;
   onDiscountTypeChange: (value: DiscountType) => void;
   onDiscountValueChange: (value: number) => void;
   onNotesChange: (value: string) => void;
   onPaymentMethodChange: (value: PaymentMethod) => void;
+  onPaymentCashAmountChange: (value: number) => void;
+  onPaymentTransferAmountChange: (value: number) => void;
   onRemoveItem: (itemId: string) => void;
   onSave: () => void;
   onUpdateItemNotes: (itemId: string, value: string) => void;
@@ -694,15 +854,71 @@ function CheckoutStep({
               placeholder="Ej: 11 5555 5555"
             />
           </AdminField>
-          <AdminField label="Metodo de pago">
-            <AdminSelect
-              value={paymentMethod}
-              onChange={(event) => onPaymentMethodChange(event.target.value as PaymentMethod)}
-            >
-              <option value="efectivo">Efectivo</option>
-              <option value="transferencia">Transferencia</option>
-            </AdminSelect>
+          <AdminField label="Entrega">
+            <div className="grid grid-cols-2 gap-2">
+              {(["pickup", "delivery"] as const).map((method) => (
+                <button
+                  key={method}
+                  type="button"
+                  onClick={() => {
+                    if (midnightOnlyPickup && method === "delivery") return;
+                    onDeliveryMethodChange(method);
+                  }}
+                  disabled={midnightOnlyPickup && method === "delivery"}
+                  className={cn(
+                    "rounded-md border px-3 py-2 font-bold uppercase transition-colors disabled:cursor-not-allowed disabled:opacity-40",
+                    deliveryMethod === method
+                      ? "border-orange-400 bg-orange-500 text-black"
+                      : "border-white/10 bg-zinc-900 text-zinc-300 hover:border-orange-400/40",
+                  )}
+                >
+                  {method === "pickup" ? "Retiro local" : "Delivery"}
+                </button>
+              ))}
+            </div>
           </AdminField>
+          {midnightOnlyPickup && (
+            <p className="rounded-md border border-orange-400/30 bg-orange-500/10 p-3 text-sm text-orange-100">
+              En madrugada solo se permite retiro local.
+            </p>
+          )}
+          {deliveryMethod === "delivery" && (
+            <AdminField label="Direccion">
+              <AdminInput
+                value={customerAddress}
+                onChange={(event) => onCustomerAddressChange(event.target.value)}
+                placeholder="Calle, numero, piso/depto"
+              />
+            </AdminField>
+          )}
+          <AdminField label="Horario de entrega opcional">
+            <AdminTimePicker value={deliveryTime} onChange={onDeliveryTimeChange} />
+          </AdminField>
+          <AdminField label="Metodo de pago">
+            <PaymentMethodPicker value={paymentMethod} onChange={onPaymentMethodChange} />
+          </AdminField>
+          {paymentMethod === "dividido" && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <AdminField label="Efectivo">
+                <AdminInput
+                  type="number"
+                  min={0}
+                  value={paymentCashAmount || ""}
+                  onChange={(event) => onPaymentCashAmountChange(Number(event.target.value))}
+                  placeholder="0"
+                />
+              </AdminField>
+              <AdminField label="Transferencia">
+                <AdminInput
+                  type="number"
+                  min={0}
+                  value={paymentTransferAmount || ""}
+                  onChange={(event) => onPaymentTransferAmountChange(Number(event.target.value))}
+                  placeholder="0"
+                />
+              </AdminField>
+            </div>
+          )}
         </div>
 
         <div className="mt-5 space-y-3">
@@ -712,11 +928,16 @@ function CheckoutStep({
                 <div>
                   <p className="font-semibold text-white">{item.product.name}</p>
                   <p className="text-sm text-zinc-400">
-                    {formatMoney(Number(item.product.price) * item.quantity)}
+                    {formatMoney(cartItemUnitPrice(item) * item.quantity)}
                   </p>
                   {item.removedIngredients.length > 0 && (
                     <p className="mt-1 text-xs text-red-200">
-                      Sin: {item.removedIngredients.join(", ")}
+                      Sin: {formatIngredientList(item.removedIngredients)}
+                    </p>
+                  )}
+                  {item.addedIngredients.length > 0 && (
+                    <p className="mt-1 text-xs text-orange-100">
+                      Extra: {formatIngredientList(item.addedIngredients)}
                     </p>
                   )}
                 </div>
@@ -805,6 +1026,109 @@ function CheckoutStep({
           <Banknote className="h-4 w-4" /> {saving ? "Guardando..." : "Confirmar venta"}
         </AdminButton>
       </aside>
+    </div>
+  );
+}
+
+function AdminTimePicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [hour = "20", minute = "00"] = value ? value.split(":") : ["20", "00"];
+  const hours = Array.from({ length: 24 }, (_, index) => String(index).padStart(2, "0"));
+  const minutes = Array.from({ length: 12 }, (_, index) => String(index * 5).padStart(2, "0"));
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className="flex min-h-12 w-full items-center gap-3 rounded-md border border-white/10 bg-black/40 px-3 py-2 text-left font-display text-3xl text-white outline-none transition-colors hover:border-orange-400 focus:border-orange-400"
+      >
+        <Clock className="h-5 w-5 text-orange-300" />
+        {value || "Elegir hora"}
+      </button>
+      {open && (
+        <div className="absolute left-0 right-0 z-30 mt-2 rounded-md border border-orange-400/40 bg-zinc-950 p-3 shadow-2xl">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="max-h-52 overflow-y-auto pr-1">
+              {hours.map((option) => (
+                <button
+                  type="button"
+                  key={option}
+                  onClick={() => onChange(`${option}:${minute}`)}
+                  className={cn(
+                    "mb-1 min-h-9 w-full rounded-md px-3 text-center font-mono text-sm transition-colors",
+                    option === hour
+                      ? "bg-orange-500 text-black"
+                      : "bg-zinc-900 text-zinc-200 hover:bg-zinc-800",
+                  )}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+            <div className="max-h-52 overflow-y-auto pr-1">
+              {minutes.map((option) => (
+                <button
+                  type="button"
+                  key={option}
+                  onClick={() => {
+                    onChange(`${hour}:${option}`);
+                    setOpen(false);
+                  }}
+                  className={cn(
+                    "mb-1 min-h-9 w-full rounded-md px-3 text-center font-mono text-sm transition-colors",
+                    option === minute
+                      ? "bg-orange-500 text-black"
+                      : "bg-zinc-900 text-zinc-200 hover:bg-zinc-800",
+                  )}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PaymentMethodPicker({
+  value,
+  onChange,
+}: {
+  value: PaymentMethod;
+  onChange: (value: PaymentMethod) => void;
+}) {
+  const options: { value: PaymentMethod; label: string }[] = [
+    { value: "efectivo", label: "Efectivo" },
+    { value: "transferencia", label: "Transferencia" },
+    { value: "dividido", label: "Pago dividido" },
+  ];
+
+  return (
+    <div className="grid gap-2 sm:grid-cols-3">
+      {options.map((option) => (
+        <button
+          type="button"
+          key={option.value}
+          onClick={() => onChange(option.value)}
+          className={cn(
+            "min-h-11 rounded-md border px-3 py-2 text-sm font-bold transition-colors",
+            value === option.value
+              ? "border-orange-400 bg-orange-500 text-black"
+              : "border-white/10 bg-black/40 text-zinc-200 hover:border-orange-400/50",
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
     </div>
   );
 }

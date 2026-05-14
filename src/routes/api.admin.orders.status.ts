@@ -39,6 +39,38 @@ export const Route = createFileRoute("/api/admin/orders/status")({
           );
         }
 
+        const [
+          { data: settings, error: settingsError },
+          { data: currentOrder, error: orderError },
+        ] = await Promise.all([
+          (supabaseAdmin as any)
+            .from("store_settings")
+            .select("is_open, current_day_started_at")
+            .eq("store_id", DEFAULT_STORE_ID)
+            .limit(1)
+            .maybeSingle(),
+          (supabaseAdmin as any)
+            .from("orders")
+            .select("id, created_at")
+            .eq("store_id", DEFAULT_STORE_ID)
+            .eq("id", parsed.data.orderId)
+            .maybeSingle(),
+        ]);
+
+        if (settingsError) return json({ error: settingsError.message }, { status: 500 });
+        if (orderError) return json({ error: orderError.message }, { status: 500 });
+        if (!currentOrder) return json({ error: "Pedido no encontrado." }, { status: 404 });
+        if (
+          !settings?.is_open ||
+          !settings.current_day_started_at ||
+          new Date(currentOrder.created_at) < new Date(settings.current_day_started_at)
+        ) {
+          return json(
+            { error: "No se puede modificar el estado porque la caja de este pedido ya cerro." },
+            { status: 409 },
+          );
+        }
+
         const patch =
           parsed.data.status === "confirmed"
             ? { status: parsed.data.status, payment_status: "approved" }

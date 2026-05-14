@@ -68,8 +68,12 @@ export function Footer() {
         <div>
           <h4 className="font-display text-xl mb-3">Horarios</h4>
           <ul className="space-y-1 text-sm text-foreground/80">
-            <li>Mié–Dom: 19:00 a 02:00</li>
-            <li>Lun–Mar: cerrado (descansamos)</li>
+            <li>Mie-Sab: 11:30 a 14:30</li>
+            <li>Mie-Sab: 19:30 a 23:30</li>
+            <li>Dom: 19:00 a 23:30</li>
+            <li>Vie-Sab: cena hasta 23:30</li>
+            <li>Luego madrugada: 23:30 a 05:00, solo retiro</li>
+            <li>Lun-Mar: cerrado</li>
           </ul>
         </div>
       </div>

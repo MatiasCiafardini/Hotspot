@@ -34,11 +34,14 @@ export type ProductCategory = {
   menu_shifts?: MenuShift[] | null;
 };
 
-export type MenuShift = "lunch" | "dinner";
+export type MenuShift = "lunch" | "dinner" | "midnight";
+
+export const MENU_SHIFTS: MenuShift[] = ["lunch", "dinner", "midnight"];
 
 export const MENU_SHIFT_LABEL: Record<MenuShift, string> = {
   lunch: "Mediodia",
   dinner: "Cena",
+  midnight: "Madrugada",
 };
 
 export const DEFAULT_CATEGORIES: ProductCategory[] = [...REAL_MENU_CATEGORIES];
@@ -59,6 +62,7 @@ export type Product = {
   stock_quantity?: number | null;
   low_stock_threshold?: number | null;
   ingredients?: string[] | null;
+  extra_ingredient_prices?: Record<string, number> | null;
 };
 
 export function categoryAvailableForShift(

@@ -3,7 +3,12 @@ import { Minus, Plus, SlidersHorizontal } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useCart } from "@/lib/cart";
 import { resolveImage, type Product } from "@/lib/products";
-import { formatMoney, productIngredients } from "@/lib/admin";
+import {
+  extraIngredientPrice,
+  formatMoney,
+  productExtraIngredients,
+  productIngredients,
+} from "@/lib/admin";
 import { Sticker } from "./Sticker";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -37,27 +42,41 @@ export function ProductCard({
   const { add } = useCart();
   const [open, setOpen] = useState(false);
   const ingredients = useMemo(() => productIngredients(product), [product]);
+  const extraIngredients = useMemo(() => productExtraIngredients(product), [product]);
   const disabled = Boolean(disabledReason);
   const unavailableSet = useMemo(
     () => new Set(unavailableIngredients.map((ingredient) => ingredient.trim().toLowerCase())),
     [unavailableIngredients],
   );
 
-  const addProduct = (options: { quantity: number; removed: string[]; notes: string }) => {
+  const addProduct = (options: {
+    quantity: number;
+    removed: string[];
+    added: string[];
+    notes: string;
+  }) => {
     const unavailableRemoved = ingredients.filter((ingredient) =>
       unavailableSet.has(ingredient.trim().toLowerCase()),
     );
     const removed = [...new Set([...options.removed, ...unavailableRemoved])];
+    const extrasTotal = options.added.reduce(
+      (sum, ingredient) => sum + extraIngredientPrice(product, ingredient),
+      0,
+    );
     add({
       id: `${product.id}-${Date.now()}`,
       product_id: product.id,
       name: product.name,
-      price: Number(product.price),
+      price: Number(product.price) + extrasTotal,
+      base_price: Number(product.price),
       image_url: product.image_url,
       quantity: options.quantity,
       base_ingredients: ingredients,
       removed_ingredients: removed,
-      added_ingredients: [],
+      added_ingredients: options.added,
+      extra_ingredient_prices: Object.fromEntries(
+        extraIngredients.map((ingredient) => [ingredient.name, ingredient.price]),
+      ),
       item_notes: options.notes,
     });
     toast.success(`Se anadio ${product.name}`, { duration: 2000 });
@@ -137,6 +156,7 @@ export function ProductCard({
       <ProductViewDialog
         product={product}
         ingredients={ingredients}
+        extraIngredients={extraIngredients}
         unavailableIngredients={unavailableIngredients}
         open={!disabled && open}
         onOpenChange={setOpen}
@@ -149,6 +169,7 @@ export function ProductCard({
 function ProductViewDialog({
   product,
   ingredients,
+  extraIngredients,
   unavailableIngredients,
   open,
   onOpenChange,
@@ -156,13 +177,15 @@ function ProductViewDialog({
 }: {
   product: Product;
   ingredients: string[];
+  extraIngredients: { name: string; price: number }[];
   unavailableIngredients: string[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAdd: (options: { quantity: number; removed: string[]; notes: string }) => void;
+  onAdd: (options: { quantity: number; removed: string[]; added: string[]; notes: string }) => void;
 }) {
   const [quantity, setQuantity] = useState(1);
   const [removed, setRemoved] = useState<string[]>([]);
+  const [added, setAdded] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const unavailableSet = useMemo(
     () => new Set(unavailableIngredients.map((ingredient) => ingredient.trim().toLowerCase())),
@@ -175,6 +198,7 @@ function ProductViewDialog({
     setRemoved(
       ingredients.filter((ingredient) => unavailableSet.has(ingredient.trim().toLowerCase())),
     );
+    setAdded([]);
     setNotes("");
   }, [ingredients, open, product.id, unavailableSet]);
 
@@ -189,11 +213,25 @@ function ProductViewDialog({
   };
 
   const addToCart = () => {
-    onAdd({ quantity, removed, notes });
+    onAdd({ quantity, removed, added, notes });
     setQuantity(1);
     setRemoved([]);
+    setAdded([]);
     setNotes("");
   };
+
+  const changeAddedIngredient = (ingredient: string, delta: number) => {
+    setAdded((current) => {
+      if (delta > 0) return [...current, ingredient];
+      const index = current.lastIndexOf(ingredient);
+      if (index === -1) return current;
+      return current.filter((_, currentIndex) => currentIndex !== index);
+    });
+  };
+
+  const unitPrice =
+    Number(product.price) +
+    added.reduce((sum, ingredient) => sum + extraIngredientPrice(product, ingredient), 0);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -232,7 +270,7 @@ function ProductViewDialog({
               </div>
             )}
             <div className="mt-4 flex items-center justify-between gap-4 border-y border-ink py-3">
-              <span className="font-display text-4xl text-ink">{formatMoney(product.price)}</span>
+              <span className="font-display text-4xl text-ink">{formatMoney(unitPrice)}</span>
               <div className="inline-flex h-11 items-center border border-ink">
                 <button
                   type="button"
@@ -254,7 +292,7 @@ function ProductViewDialog({
               </div>
             </div>
 
-            {ingredients.length > 0 && (
+            {extraIngredients.length > 0 && (
               <div className="mt-4">
                 <p className="mb-2 flex items-center gap-2 text-sm font-bold uppercase text-muted-foreground">
                   <SlidersHorizontal className="h-4 w-4" />
@@ -295,6 +333,52 @@ function ProductViewDialog({
                           )
                         )}
                       </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {ingredients.length > 0 && (
+              <div className="mt-4">
+                <p className="mb-2 flex items-center gap-2 text-sm font-bold uppercase text-muted-foreground">
+                  <Plus className="h-4 w-4" />
+                  Agregar extras
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {extraIngredients.map((ingredient) => {
+                    const count = added.filter((item) => item === ingredient.name).length;
+                    return (
+                      <div
+                        key={ingredient.name}
+                        className="flex min-h-12 items-center justify-between gap-3 border border-ink/30 bg-card px-3 py-2 text-sm"
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate">{ingredient.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            Extra {formatMoney(ingredient.price)}
+                          </span>
+                        </span>
+                        <span className="inline-flex h-9 items-center border border-ink">
+                          <button
+                            type="button"
+                            onClick={() => changeAddedIngredient(ingredient.name, -1)}
+                            className="flex h-full w-8 items-center justify-center hover:bg-ink hover:text-cream"
+                            aria-label={`Restar ${ingredient.name}`}
+                          >
+                            <Minus className="h-3 w-3" />
+                          </button>
+                          <span className="w-8 text-center font-display text-sm">{count}</span>
+                          <button
+                            type="button"
+                            onClick={() => changeAddedIngredient(ingredient.name, 1)}
+                            className="flex h-full w-8 items-center justify-center hover:bg-ink hover:text-cream"
+                            aria-label={`Sumar ${ingredient.name}`}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </button>
+                        </span>
+                      </div>
                     );
                   })}
                 </div>

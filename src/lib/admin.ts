@@ -1,5 +1,5 @@
 import type { Product } from "@/lib/products";
-import type { MenuShift } from "@/lib/products";
+import { MENU_SHIFT_LABEL, type MenuShift } from "@/lib/products";
 import logoHotspotUrl from "@/assets/logo_hotspot.png?url";
 
 export type OrderStatus =
@@ -33,7 +33,10 @@ export type AdminOrder = {
   customer_phone: string;
   customer_address: string | null;
   delivery_method: string;
+  delivery_time?: string | null;
   payment_method?: string | null;
+  payment_cash_amount?: number | null;
+  payment_transfer_amount?: number | null;
   payment_status?: PaymentStatus | null;
   payment_receipt_url?: string | null;
   notes: string | null;
@@ -135,7 +138,8 @@ export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
 export const DEFAULT_SETTINGS: StoreSettings = {
   store_name: "Hotspot",
   logo_url: logoHotspotUrl,
-  hours: "Todos los dias de 19:00 a 00:00",
+  hours:
+    "Almuerzo Mie-Sab 11:30 a 14:30. Cena Mie-Sab 19:30 a 23:30 y Dom 19:00 a 23:30. Viernes y sabado: cena hasta 23:30. Luego menu madrugada hasta 05:00, solo retiro.",
   contact_phone: "+54 9 11 0000-0000",
   address: "Direccion del local",
   transfer_alias: "HOTSPOT.PEDIDOS",
@@ -155,10 +159,138 @@ export const DEFAULT_INGREDIENTS: Record<string, string[]> = {
   drinks: [],
 };
 
+export type ExtraIngredientOption = {
+  name: string;
+  price: number;
+};
+
+export const DEFAULT_EXTRA_INGREDIENT_PRICES: Record<string, number> = {
+  "Carne y cheddar": 3500,
+  Carne: 3500,
+  Lechuga: 1000,
+  Cebolla: 1000,
+  Tomate: 1000,
+  Pepinillos: 1000,
+  "Cebolla crispy": 1500,
+  "Cebolla caramelizada": 1500,
+  "Aros de cebolla": 1500,
+  "Chedar feta": 1000,
+  "Huevo frito": 1500,
+  "Chedar liquido": 2000,
+  Mayonesa: 1000,
+  Mostaza: 1000,
+  Ketchup: 1000,
+  BBQ: 1000,
+  Barbacoa: 1000,
+};
+
+function normalizeIngredientKey(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function isMeatIngredient(ingredient: string) {
+  const normalized = normalizeIngredientKey(ingredient);
+  return normalized.includes("carne") || normalized.includes("medallon");
+}
+
+function isCheddarIngredient(ingredient: string) {
+  const normalized = normalizeIngredientKey(ingredient);
+  return normalized.includes("cheddar") || normalized.includes("chedar");
+}
+
+function defaultExtraNameForIngredient(ingredient: string) {
+  const normalized = normalizeIngredientKey(ingredient);
+  if (normalized.includes("lechuga")) return "Lechuga";
+  if (normalized.includes("tomate")) return "Tomate";
+  if (normalized.includes("pepinillo")) return "Pepinillos";
+  if (normalized.includes("aro") && normalized.includes("cebolla")) return "Aros de cebolla";
+  if (
+    normalized.includes("cebolla crispy") ||
+    normalized.includes("cebollita crispy") ||
+    normalized.includes("cebolla crispi")
+  ) {
+    return "Cebolla crispy";
+  }
+  if (normalized.includes("cebolla caramel") || normalized.includes("cebollita caramel")) {
+    return "Cebolla caramelizada";
+  }
+  if (normalized === "cebolla" || normalized.includes("cebolla cruda")) return "Cebolla";
+  if (normalized.includes("huevo")) return "Huevo frito";
+  if (
+    normalized.includes("cheddar liquido") ||
+    normalized.includes("chedar liquido") ||
+    normalized.includes("cheddar fundido")
+  ) {
+    return "Chedar liquido";
+  }
+  if (isCheddarIngredient(ingredient)) return "Chedar feta";
+  if (normalized.includes("mayonesa")) return "Mayonesa";
+  if (normalized.includes("mostaza")) return "Mostaza";
+  if (normalized.includes("ketchup") || normalized.includes("quetchup")) return "Ketchup";
+  if (normalized.includes("bbq")) return "BBQ";
+  if (normalized.includes("barbacoa")) return "Barbacoa";
+  return null;
+}
+
 export function productIngredients(product: Pick<Product, "category" | "ingredients">) {
   return product.ingredients?.length
     ? product.ingredients
     : (DEFAULT_INGREDIENTS[product.category] ?? []);
+}
+
+export function buildExtraIngredientOptions(
+  ingredients: string[],
+  priceOverrides: Record<string, number> = {},
+) {
+  const hasMeat = ingredients.some(isMeatIngredient);
+  const hasCheddar = ingredients.some(isCheddarIngredient);
+  const options: ExtraIngredientOption[] = [];
+  const seen = new Set<string>();
+
+  const addOption = (name: string) => {
+    if (seen.has(name)) return;
+    seen.add(name);
+    options.push({
+      name,
+      price: Number(priceOverrides[name] ?? DEFAULT_EXTRA_INGREDIENT_PRICES[name] ?? 0),
+    });
+  };
+
+  if (hasMeat && hasCheddar) addOption("Carne y cheddar");
+  if (hasMeat && !hasCheddar) addOption("Carne");
+
+  ingredients.forEach((ingredient) => {
+    if (isMeatIngredient(ingredient)) return;
+    if (hasMeat && hasCheddar && isCheddarIngredient(ingredient)) return;
+    const optionName = defaultExtraNameForIngredient(ingredient);
+    if (optionName) addOption(optionName);
+  });
+
+  return options;
+}
+
+export function productExtraIngredients(
+  product: Pick<Product, "category" | "ingredients" | "extra_ingredient_prices">,
+) {
+  return buildExtraIngredientOptions(
+    productIngredients(product),
+    product.extra_ingredient_prices ?? {},
+  );
+}
+
+export function extraIngredientPrice(
+  product: Pick<Product, "extra_ingredient_prices">,
+  ingredient: string,
+) {
+  return Number(
+    product.extra_ingredient_prices?.[ingredient] ??
+      DEFAULT_EXTRA_INGREDIENT_PRICES[ingredient] ??
+      0,
+  );
 }
 
 export function formatMoney(value: number | string) {
@@ -169,8 +301,28 @@ export function shortOrderId(id: string) {
   return `#${id.slice(0, 8).toUpperCase()}`;
 }
 
+const TICKET_SEPARATOR = "----------------------";
+
 export function formatDateTime(value: string) {
   return new Date(value).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" });
+}
+
+export function formatDeliveryTime(value: string | null | undefined) {
+  if (!value) return null;
+  const [hour, minute] = value.split(":");
+  if (!hour || !minute) return value;
+  return `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`;
+}
+
+export function formatIngredientList(ingredients: string[] | null | undefined) {
+  if (!ingredients?.length) return "";
+  const counts = ingredients.reduce<Map<string, number>>((map, ingredient) => {
+    map.set(ingredient, (map.get(ingredient) ?? 0) + 1);
+    return map;
+  }, new Map());
+  return [...counts.entries()]
+    .map(([ingredient, quantity]) => (quantity > 1 ? `${quantity} x ${ingredient}` : ingredient))
+    .join(", ");
 }
 
 function normalizeWhatsAppPhone(value: string) {
@@ -239,23 +391,34 @@ export function buildComandaLines(order: AdminOrder, settings: StoreSettings = D
   const lines: string[] = [
     settings.store_name.toUpperCase(),
     "COMANDA COCINA",
-    "------------------------------",
+    TICKET_SEPARATOR,
     `Pedido ${shortOrderId(order.id)}`,
     `Hora ${new Date(order.created_at).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}`,
     `Cliente ${order.customer_name}`,
     `Tel ${order.customer_phone}`,
+    `Entrega ${order.delivery_method === "delivery" ? "Delivery" : "Retiro local"}`,
   ];
 
-  if (order.customer_address) lines.push(`Dir ${order.customer_address}`);
-  lines.push(`Pago ${order.payment_method || "A confirmar"}`);
-  lines.push("------------------------------");
+  const deliveryTime = formatDeliveryTime(order.delivery_time);
+  if (deliveryTime) lines.push(`Horario entrega ${deliveryTime}`);
+  if (order.customer_address) lines.push(`Domicilio ${order.customer_address}`);
+  if (order.payment_method === "dividido") {
+    lines.push("Pago dividido");
+    lines.push(`Efectivo ${formatMoney(order.payment_cash_amount || 0)}`);
+    lines.push(`Transfer ${formatMoney(order.payment_transfer_amount || 0)}`);
+  } else {
+    lines.push(`Pago ${order.payment_method || "A confirmar"}`);
+  }
+  lines.push(TICKET_SEPARATOR);
 
   order.order_items?.forEach((item) => {
     lines.push(`${item.quantity} x ${item.product_name}`.toUpperCase());
-    if (item.removed_ingredients?.length) lines.push(`Sin: ${item.removed_ingredients.join(", ")}`);
-    if (item.added_ingredients?.length) lines.push(`Extra: ${item.added_ingredients.join(", ")}`);
+    if (item.removed_ingredients?.length)
+      lines.push(`Sin: ${formatIngredientList(item.removed_ingredients)}`);
+    if (item.added_ingredients?.length)
+      lines.push(`Extra: ${formatIngredientList(item.added_ingredients)}`);
     if (item.item_notes) lines.push(`Obs: ${item.item_notes}`);
-    lines.push("------------------------------");
+    lines.push(TICKET_SEPARATOR);
   });
 
   if (order.notes) lines.push(`Notas: ${order.notes}`);
@@ -266,12 +429,12 @@ export function buildComandaLines(order: AdminOrder, settings: StoreSettings = D
 export function downloadComandaPdf(order: AdminOrder, settings: StoreSettings = DEFAULT_SETTINGS) {
   const lines = buildComandaLines(order, settings);
   const pageWidth = 226;
-  const lineHeight = 12;
+  const lineHeight = 14;
   const pageHeight = Math.max(360, 42 + lines.length * lineHeight);
   const content = lines
     .map(
       (line, index) =>
-        `BT /F1 9 Tf 12 ${pageHeight - 24 - index * lineHeight} Td (${escapePdfText(line)}) Tj ET`,
+        `BT /F1 10 Tf 12 ${pageHeight - 24 - index * lineHeight} Td (${escapePdfText(line)}) Tj ET`,
     )
     .join("\n");
   const objects = [
@@ -324,7 +487,7 @@ function buildComandaHtml(order: AdminOrder, settings: StoreSettings = DEFAULT_S
             font-family: Courier, monospace;
             color: #000;
             background: #fff;
-            font-size: 11px;
+            font-size: 13px;
           }
           .ticket {
             box-sizing: border-box;
@@ -339,7 +502,7 @@ function buildComandaHtml(order: AdminOrder, settings: StoreSettings = DEFAULT_S
             margin: 0 auto 3mm;
             filter: grayscale(1) contrast(1.2);
           }
-          pre { white-space: pre-wrap; margin: 0; line-height: 1.35; overflow: visible; }
+          pre { white-space: pre-wrap; margin: 0; line-height: 1.4; overflow: visible; }
           @media print {
             body { width: ${printWidthMm}mm; }
           }
@@ -418,14 +581,23 @@ export function deriveCashSummaryStats(orders: AdminOrder[]) {
   const validOrders = orders.filter((order) => !["rejected", "cancelled"].includes(order.status));
   const rejectedOrders = orders.filter((order) => ["rejected", "cancelled"].includes(order.status));
   const approvedTransfer = validOrders
-    .filter((order) => isTransferPayment(order) && isApprovedPayment(order))
-    .reduce((sum, order) => sum + Number(order.total), 0);
+    .filter((order) => isApprovedPayment(order))
+    .reduce((sum, order) => {
+      if (order.payment_method === "dividido")
+        return sum + Number(order.payment_transfer_amount || 0);
+      return isTransferPayment(order) ? sum + Number(order.total) : sum;
+    }, 0);
   const pendingTransfer = validOrders
-    .filter((order) => isTransferPayment(order) && !isApprovedPayment(order))
-    .reduce((sum, order) => sum + Number(order.total), 0);
-  const cash = validOrders
-    .filter((order) => isCashPayment(order))
-    .reduce((sum, order) => sum + Number(order.total), 0);
+    .filter((order) => !isApprovedPayment(order))
+    .reduce((sum, order) => {
+      if (order.payment_method === "dividido")
+        return sum + Number(order.payment_transfer_amount || 0);
+      return isTransferPayment(order) ? sum + Number(order.total) : sum;
+    }, 0);
+  const cash = validOrders.reduce((sum, order) => {
+    if (order.payment_method === "dividido") return sum + Number(order.payment_cash_amount || 0);
+    return isCashPayment(order) ? sum + Number(order.total) : sum;
+  }, 0);
   const total = validOrders.reduce((sum, order) => sum + Number(order.total), 0);
 
   return {
@@ -446,20 +618,20 @@ export function buildCashSummaryLines({ openedAt, closedAt, orders, settings }: 
   return [
     settings.store_name.toUpperCase(),
     "CIERRE DE CAJA",
-    "------------------------------",
+    TICKET_SEPARATOR,
     `Apertura ${formatDateTime(openedAt)}`,
     `Cierre ${formatDateTime(closedAt)}`,
-    `Turno ${settings.current_menu_shift === "lunch" ? "Mediodia" : "Cena"}`,
-    "------------------------------",
+    `Turno ${settings.current_menu_shift ? MENU_SHIFT_LABEL[settings.current_menu_shift] : "Sin turno"}`,
+    TICKET_SEPARATOR,
     `Pedidos totales ${stats.ordersCount}`,
     `Pedidos cobrables ${stats.chargeableOrdersCount}`,
     `Rechazados/cancelados ${stats.rejectedOrdersCount}`,
-    "------------------------------",
+    TICKET_SEPARATOR,
     `Total vendido ${formatMoney(stats.total)}`,
     `Transfer aprobado ${formatMoney(stats.approvedTransfer)}`,
     `Transfer pendiente ${formatMoney(stats.pendingTransfer)}`,
     `Efectivo ${formatMoney(stats.cash)}`,
-    "------------------------------",
+    TICKET_SEPARATOR,
     ...validOrders.map(
       (order) =>
         `${shortOrderId(order.id)} ${formatMoney(order.total)} ${ORDER_STATUS_LABEL[order.status]}`,

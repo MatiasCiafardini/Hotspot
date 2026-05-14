@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Edit3, ImageUp, Plus, Save, Trash2 } from "lucide-react";
+import { Edit3, ImageUp, Plus, Save, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   DEFAULT_CATEGORIES,
@@ -17,7 +17,7 @@ import {
   AdminSelect,
   AdminTextarea,
 } from "@/components/admin/AdminBits";
-import { formatMoney } from "@/lib/admin";
+import { buildExtraIngredientOptions, formatMoney } from "@/lib/admin";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/productos")({
@@ -39,6 +39,7 @@ const blank: Partial<Product> = {
   stock_quantity: 0,
   low_stock_threshold: 5,
   ingredients: [],
+  extra_ingredient_prices: {},
 };
 
 const PRODUCT_IMAGES_BUCKET = "product-images";
@@ -58,6 +59,7 @@ function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>(DEFAULT_CATEGORIES);
   const [editing, setEditing] = useState<Partial<Product>>(blank);
+  const [editorOpen, setEditorOpen] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [importingMenu, setImportingMenu] = useState(false);
 
@@ -85,6 +87,9 @@ function ProductsPage() {
   }, []);
 
   const hasRealMenu = products.some((product) => product.name === "BIG MC");
+  const editingIngredients = editing.ingredients ?? [];
+  const editingExtraPrices = editing.extra_ingredient_prices ?? {};
+  const editingExtraOptions = buildExtraIngredientOptions(editingIngredients, editingExtraPrices);
 
   const syncBurgerStock = async () => {
     const response = await fetch("/api/admin/stock/sync-burgers", {
@@ -126,6 +131,12 @@ function ProductsPage() {
       stock_quantity: product.stock_quantity ?? 30,
       low_stock_threshold: product.low_stock_threshold ?? 5,
       ingredients: product.ingredients ?? [],
+      extra_ingredient_prices: Object.fromEntries(
+        buildExtraIngredientOptions(product.ingredients ?? []).map((extra) => [
+          extra.name,
+          extra.price,
+        ]),
+      ),
     }));
     const { error: productsError } = await (supabase as any).from("products").insert(payload);
     if (productsError) {
@@ -151,11 +162,23 @@ function ProductsPage() {
       stock_quantity: Number(editing.stock_quantity || 0),
       low_stock_threshold: Number(editing.low_stock_threshold || 0),
       ingredients: editing.ingredients ?? [],
+      extra_ingredient_prices: Object.fromEntries(
+        buildExtraIngredientOptions(
+          editing.ingredients ?? [],
+          editing.extra_ingredient_prices ?? {},
+        ).map((extra) => [extra.name, extra.price]),
+      ),
     };
-    const request = editing.id
-      ? (supabase as any).from("products").update(payload).eq("id", editing.id)
-      : (supabase as any).from("products").insert(payload);
-    const { error } = await request;
+    const request = (nextPayload: Record<string, unknown>) =>
+      editing.id
+        ? (supabase as any).from("products").update(nextPayload).eq("id", editing.id)
+        : (supabase as any).from("products").insert(nextPayload);
+    let { error } = await request(payload);
+    if (error?.message?.includes("extra_ingredient_prices")) {
+      const { extra_ingredient_prices: _extraIngredientPrices, ...fallbackPayload } = payload;
+      const retry = await request(fallbackPayload);
+      error = retry.error;
+    }
     if (error) return toast.error("No se pudo guardar el producto.");
     const stockSync = payload.category === "burgers" ? await syncBurgerStock() : null;
     toast.success(
@@ -164,6 +187,7 @@ function ProductsPage() {
         : "Producto guardado.",
     );
     setEditing(newBlank());
+    setEditorOpen(false);
     load();
   };
 
@@ -217,154 +241,228 @@ function ProductsPage() {
                 {importingMenu ? "Cargando..." : "Cargar menu real"}
               </AdminButton>
             )}
-            <AdminButton onClick={() => setEditing(newBlank())}>
+            <AdminButton
+              onClick={() => {
+                setEditing(newBlank());
+                setEditorOpen(true);
+              }}
+            >
               <Plus className="h-4 w-4" /> Nuevo producto
             </AdminButton>
           </div>
         }
       />
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_420px]">
-        <div className="grid gap-4 md:grid-cols-2">
-          {products.map((product) => (
-            <article
-              key={product.id}
-              className="rounded-lg border border-white/10 bg-zinc-900/70 p-4"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs uppercase text-orange-300">{product.category}</p>
-                  <h2 className="font-display text-3xl">{product.name}</h2>
-                  <p className="mt-1 text-sm text-zinc-400">{product.description}</p>
-                </div>
-                <span className={product.available ? "text-emerald-300" : "text-red-300"}>
-                  {product.available ? "Activo" : "Pausado"}
-                </span>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {products.map((product) => (
+          <article
+            key={product.id}
+            className="rounded-lg border border-white/10 bg-zinc-900/70 p-4"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase text-orange-300">{product.category}</p>
+                <h2 className="font-display text-3xl">{product.name}</h2>
+                <p className="mt-1 text-sm text-zinc-400">{product.description}</p>
               </div>
-              <p className="mt-3 font-display text-3xl text-orange-300">
-                {formatMoney(product.price)}
-              </p>
-              <p className="mt-2 text-xs text-zinc-500">
-                Ingredientes: {product.ingredients?.join(", ") || "Sin ingredientes cargados"}
-              </p>
-              <div className="mt-4 flex gap-2">
-                <AdminButton variant="ghost" onClick={() => setEditing(product)}>
-                  <Edit3 className="h-4 w-4" /> Editar
-                </AdminButton>
-                <AdminButton variant="danger" onClick={() => remove(product.id)}>
-                  <Trash2 className="h-4 w-4" />
-                </AdminButton>
-              </div>
-            </article>
-          ))}
-        </div>
+              <span className={product.available ? "text-emerald-300" : "text-red-300"}>
+                {product.available ? "Activo" : "Pausado"}
+              </span>
+            </div>
+            <p className="mt-3 font-display text-3xl text-orange-300">
+              {formatMoney(product.price)}
+            </p>
+            <p className="mt-2 text-xs text-zinc-500">
+              Ingredientes: {product.ingredients?.join(", ") || "Sin ingredientes cargados"}
+            </p>
+            {product.extra_ingredient_prices &&
+              Object.values(product.extra_ingredient_prices).some((price) => Number(price) > 0) && (
+                <p className="mt-1 text-xs text-orange-200">
+                  Extras configurados:{" "}
+                  {Object.entries(product.extra_ingredient_prices)
+                    .filter(([, price]) => Number(price) > 0)
+                    .map(([ingredient, price]) => `${ingredient} ${formatMoney(price)}`)
+                    .join(", ")}
+                </p>
+              )}
+            <div className="mt-4 flex gap-2">
+              <AdminButton
+                variant="ghost"
+                onClick={() => {
+                  setEditing(product);
+                  setEditorOpen(true);
+                }}
+              >
+                <Edit3 className="h-4 w-4" /> Editar
+              </AdminButton>
+              <AdminButton variant="danger" onClick={() => remove(product.id)}>
+                <Trash2 className="h-4 w-4" />
+              </AdminButton>
+            </div>
+          </article>
+        ))}
+      </div>
 
-        <div className="h-fit rounded-lg border border-orange-400/30 bg-zinc-900/90 p-4">
-          <h2 className="font-display text-3xl">{editing.id ? "Editar" : "Nuevo"} producto</h2>
-          <div className="mt-4 grid gap-3">
-            <AdminField label="Nombre">
-              <AdminInput
-                value={editing.name || ""}
-                onChange={(e) => setEditing({ ...editing, name: e.target.value })}
-              />
-            </AdminField>
-            <AdminField label="Descripcion">
-              <AdminTextarea
-                value={editing.description || ""}
-                onChange={(e) => setEditing({ ...editing, description: e.target.value })}
-              />
-            </AdminField>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <AdminField label="Precio">
+      {editorOpen && (
+        <div className="fixed inset-0 z-50 bg-black/75 p-4" onClick={() => setEditorOpen(false)}>
+          <div
+            className="mx-auto flex max-h-[92vh] max-w-3xl flex-col overflow-hidden rounded-lg border border-orange-400/30 bg-zinc-950 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-white/10 p-5">
+              <h2 className="font-display text-4xl leading-none">
+                {editing.id ? "Editar producto" : "Nuevo producto"}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setEditorOpen(false)}
+                className="rounded-md border border-white/10 p-2 text-zinc-300 hover:border-orange-400/40"
+                aria-label="Cerrar"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="grid gap-3 overflow-y-auto p-5">
+              <AdminField label="Nombre">
                 <AdminInput
-                  type="number"
-                  value={editing.price || 0}
-                  onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })}
+                  value={editing.name || ""}
+                  onChange={(e) => setEditing({ ...editing, name: e.target.value })}
                 />
               </AdminField>
-              <AdminField label="Categoria">
-                <AdminSelect
-                  value={editing.category || categories[0]?.key || "burgers"}
-                  onChange={(e) => setEditing({ ...editing, category: e.target.value })}
-                >
-                  {categories.map((category) => (
-                    <option key={category.key} value={category.key}>
-                      {category.label}
-                    </option>
-                  ))}
-                </AdminSelect>
+              <AdminField label="Descripcion">
+                <AdminTextarea
+                  value={editing.description || ""}
+                  onChange={(e) => setEditing({ ...editing, description: e.target.value })}
+                />
               </AdminField>
-            </div>
-            <AdminField label="Imagen">
-              <div className="grid gap-3">
-                {editing.image_url && (
-                  <img
-                    src={resolveImage(editing.image_url)}
-                    alt={editing.name || "Producto"}
-                    className="h-40 w-full rounded-md border border-white/10 object-cover"
-                  />
-                )}
-                <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed border-orange-400/40 bg-black/30 p-4 text-center text-sm text-zinc-300 transition-colors hover:border-orange-300 hover:bg-orange-500/10">
-                  <ImageUp className="h-6 w-6 text-orange-300" />
-                  <span className="font-semibold">
-                    {uploadingImage ? "Subiendo imagen..." : "Seleccionar imagen"}
-                  </span>
-                  <span className="text-xs text-zinc-500">JPG, PNG o WEBP hasta 5 MB</span>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <AdminField label="Precio">
                   <AdminInput
-                    type="file"
-                    accept="image/*"
-                    disabled={uploadingImage}
-                    className="sr-only"
-                    onChange={(e) => uploadImage(e.target.files?.[0] ?? null)}
+                    type="number"
+                    placeholder="0"
+                    value={editing.price ? editing.price : ""}
+                    onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })}
                   />
-                </label>
+                </AdminField>
+                <AdminField label="Categoria">
+                  <AdminSelect
+                    value={editing.category || categories[0]?.key || "burgers"}
+                    onChange={(e) => setEditing({ ...editing, category: e.target.value })}
+                  >
+                    {categories.map((category) => (
+                      <option key={category.key} value={category.key}>
+                        {category.label}
+                      </option>
+                    ))}
+                  </AdminSelect>
+                </AdminField>
               </div>
-            </AdminField>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <AdminField label="Promocion / badge">
-                <AdminInput
-                  value={editing.badge || ""}
-                  onChange={(e) => setEditing({ ...editing, badge: e.target.value })}
-                />
+              <AdminField label="Imagen">
+                <div className="grid gap-3">
+                  {editing.image_url && (
+                    <img
+                      src={resolveImage(editing.image_url)}
+                      alt={editing.name || "Producto"}
+                      className="h-40 w-full rounded-md border border-white/10 object-cover"
+                    />
+                  )}
+                  <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed border-orange-400/40 bg-black/30 p-4 text-center text-sm text-zinc-300 transition-colors hover:border-orange-300 hover:bg-orange-500/10">
+                    <ImageUp className="h-6 w-6 text-orange-300" />
+                    <span className="font-semibold">
+                      {uploadingImage ? "Subiendo imagen..." : "Seleccionar imagen"}
+                    </span>
+                    <span className="text-xs text-zinc-500">JPG, PNG o WEBP hasta 5 MB</span>
+                    <AdminInput
+                      type="file"
+                      accept="image/*"
+                      disabled={uploadingImage}
+                      className="sr-only"
+                      onChange={(e) => uploadImage(e.target.files?.[0] ?? null)}
+                    />
+                  </label>
+                </div>
               </AdminField>
-              <AdminField label="Stock disponible">
-                <AdminInput
-                  type="number"
-                  value={editing.stock_quantity || 0}
-                  onChange={(e) =>
-                    setEditing({ ...editing, stock_quantity: Number(e.target.value) })
-                  }
-                />
-              </AdminField>
-            </div>
-            <AdminField label="Ingredientes base, separados por coma">
-              <AdminTextarea
-                value={(editing.ingredients || []).join(", ")}
-                onChange={(e) =>
-                  setEditing({
-                    ...editing,
-                    ingredients: e.target.value
+              <div className="grid gap-3 sm:grid-cols-2">
+                <AdminField label="Promocion / badge">
+                  <AdminInput
+                    value={editing.badge || ""}
+                    onChange={(e) => setEditing({ ...editing, badge: e.target.value })}
+                  />
+                </AdminField>
+                <AdminField label="Stock disponible">
+                  <AdminInput
+                    type="number"
+                    value={editing.stock_quantity || 0}
+                    onChange={(e) =>
+                      setEditing({ ...editing, stock_quantity: Number(e.target.value) })
+                    }
+                  />
+                </AdminField>
+              </div>
+              <AdminField label="Ingredientes base, separados por coma">
+                <AdminTextarea
+                  value={(editing.ingredients || []).join(", ")}
+                  onChange={(e) => {
+                    const nextIngredients = e.target.value
                       .split(",")
                       .map((item) => item.trim())
-                      .filter(Boolean),
-                  })
-                }
-              />
-            </AdminField>
-            <label className="flex items-center gap-2 text-sm text-zinc-300">
-              <input
-                type="checkbox"
-                checked={editing.available ?? true}
-                onChange={(e) => setEditing({ ...editing, available: e.target.checked })}
-              />
-              Producto activo
-            </label>
-            <AdminButton onClick={save}>
-              <Save className="h-4 w-4" /> Guardar producto
-            </AdminButton>
+                      .filter(Boolean);
+                    setEditing({
+                      ...editing,
+                      ingredients: nextIngredients,
+                      extra_ingredient_prices: Object.fromEntries(
+                        buildExtraIngredientOptions(nextIngredients, editingExtraPrices).map(
+                          (extra) => [extra.name, extra.price],
+                        ),
+                      ),
+                    });
+                  }}
+                />
+              </AdminField>
+              {editingExtraOptions.length > 0 && (
+                <AdminField label="Precio por ingrediente extra">
+                  <div className="grid gap-2 rounded-md border border-white/10 bg-black/20 p-3">
+                    {editingExtraOptions.map((ingredient) => (
+                      <div
+                        key={ingredient.name}
+                        className="grid grid-cols-[minmax(0,1fr)_120px] items-center gap-2"
+                      >
+                        <span className="truncate text-sm text-zinc-300">{ingredient.name}</span>
+                        <AdminInput
+                          type="number"
+                          min={0}
+                          value={editingExtraPrices[ingredient.name] ?? ingredient.price}
+                          onChange={(event) =>
+                            setEditing({
+                              ...editing,
+                              extra_ingredient_prices: {
+                                ...editingExtraPrices,
+                                [ingredient.name]: Number(event.target.value),
+                              },
+                            })
+                          }
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </AdminField>
+              )}
+              <label className="flex items-center gap-2 text-sm text-zinc-300">
+                <input
+                  type="checkbox"
+                  checked={editing.available ?? true}
+                  onChange={(e) => setEditing({ ...editing, available: e.target.checked })}
+                />
+                Producto activo
+              </label>
+              <AdminButton onClick={save}>
+                <Save className="h-4 w-4" /> Guardar producto
+              </AdminButton>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </>
   );
 }

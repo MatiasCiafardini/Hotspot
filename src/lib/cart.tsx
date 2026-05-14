@@ -5,11 +5,13 @@ export type CartItem = {
   product_id: string;
   name: string;
   price: number;
+  base_price?: number;
   image_url: string | null;
   quantity: number;
   base_ingredients: string[];
   removed_ingredients: string[];
   added_ingredients: string[];
+  extra_ingredient_prices?: Record<string, number>;
   item_notes: string;
 };
 
@@ -50,11 +52,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
           product_id: item.product_id || item.id || "",
           name: item.name || "",
           price: Number(item.price || 0),
+          base_price: Number(item.base_price || item.price || 0),
           image_url: item.image_url ?? null,
           quantity: Number(item.quantity || 1),
           base_ingredients: item.base_ingredients || [],
           removed_ingredients: item.removed_ingredients || [],
           added_ingredients: item.added_ingredients || [],
+          extra_ingredient_prices: item.extra_ingredient_prices || {},
           item_notes: item.item_notes || "",
         })),
       );

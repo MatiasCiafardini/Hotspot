@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
-import { DEFAULT_SETTINGS, formatMoney } from "@/lib/admin";
+import { DEFAULT_SETTINGS, extraIngredientPrice, formatMoney } from "@/lib/admin";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { badRequest, json, methodNotAllowed } from "@/lib/server/customer-auth";
 import { requireAdminOwner } from "@/lib/server/admin-auth";
@@ -15,7 +15,17 @@ import {
 const localSaleSchema = z.object({
   customerName: z.string().trim().min(1, "El nombre es obligatorio.").max(120),
   customerPhone: z.string().trim().max(40).optional(),
-  paymentMethod: z.enum(["efectivo", "transferencia"]),
+  deliveryMethod: z.enum(["pickup", "delivery"]).default("pickup"),
+  customerAddress: z.string().trim().max(255).optional(),
+  deliveryTime: z
+    .string()
+    .trim()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "El horario de entrega es invalido.")
+    .optional()
+    .or(z.literal("")),
+  paymentMethod: z.enum(["efectivo", "transferencia", "dividido"]),
+  paymentCashAmount: z.number().finite().nonnegative().nullable().optional(),
+  paymentTransferAmount: z.number().finite().nonnegative().nullable().optional(),
   discountType: z.enum(["percent", "fixed"]).default("percent"),
   discountValue: z.number().finite().nonnegative().default(0),
   notes: z.string().trim().max(500).optional(),
@@ -25,6 +35,7 @@ const localSaleSchema = z.object({
         productId: z.string().uuid(),
         quantity: z.number().int().positive().max(50),
         removedIngredients: z.array(z.string().trim().max(80)).default([]),
+        addedIngredients: z.array(z.string().trim().max(80)).default([]),
         notes: z.string().trim().max(240).optional(),
       }),
     )
@@ -56,6 +67,9 @@ export const Route = createFileRoute("/api/admin/local-sale")({
           return badRequest("Datos invalidos para la venta local.", parsed.error.flatten());
 
         const input = parsed.data;
+        if (input.deliveryMethod === "delivery" && !input.customerAddress?.trim()) {
+          return badRequest("La direccion es obligatoria para delivery.");
+        }
         const productIds = [...new Set(input.items.map((item) => item.productId))];
 
         const [
@@ -79,6 +93,13 @@ export const Route = createFileRoute("/api/admin/local-sale")({
         if (settingsError) return json({ error: settingsError.message }, { status: 500 });
         if (productsError) return json({ error: productsError.message }, { status: 500 });
 
+        if (!settingsData?.is_open || !settingsData.current_day_started_at) {
+          return json(
+            { error: "Tenes que abrir la caja antes de cargar una venta." },
+            { status: 409 },
+          );
+        }
+
         const products = (productsData as Product[] | null) ?? [];
         if (products.length !== productIds.length) {
           return badRequest("Hay productos que ya no estan disponibles.");
@@ -97,6 +118,9 @@ export const Route = createFileRoute("/api/admin/local-sale")({
 
         const settings = { ...DEFAULT_SETTINGS, ...settingsData };
         const currentShift = (settings.current_menu_shift || "dinner") as MenuShift;
+        if (currentShift === "midnight" && input.deliveryMethod === "delivery") {
+          return badRequest("Durante madrugada solo se permite retiro local.");
+        }
         const categories = new Map(
           ((categoriesData as ProductCategory[] | null) ?? []).map((category) => [
             category.key,
@@ -115,7 +139,12 @@ export const Route = createFileRoute("/api/admin/local-sale")({
 
         const subtotal = input.items.reduce((sum, item) => {
           const product = productsById.get(item.productId);
-          return sum + Number(product?.price ?? 0) * item.quantity;
+          const extras = item.addedIngredients.reduce(
+            (extraSum, ingredient) =>
+              extraSum + (product ? extraIngredientPrice(product, ingredient) : 0),
+            0,
+          );
+          return sum + (Number(product?.price ?? 0) + extras) * item.quantity;
         }, 0);
         const discountValue = Number(input.discountValue) || 0;
         const discountAmount =
@@ -124,6 +153,13 @@ export const Route = createFileRoute("/api/admin/local-sale")({
             : discountValue;
         const safeDiscount = Math.min(subtotal, Math.max(0, discountAmount));
         const total = Math.max(0, subtotal - safeDiscount);
+        if (input.paymentMethod === "dividido") {
+          const cash = Number(input.paymentCashAmount || 0);
+          const transfer = Number(input.paymentTransferAmount || 0);
+          if (cash <= 0 || transfer <= 0 || Math.abs(cash + transfer - total) > 0.01) {
+            return badRequest("El pago dividido no coincide con el total.");
+          }
+        }
         const discountLabel =
           safeDiscount > 0
             ? `Descuento ${input.discountType === "percent" ? `${discountValue}%` : formatMoney(discountValue)}: -${formatMoney(safeDiscount)}.`
@@ -132,22 +168,47 @@ export const Route = createFileRoute("/api/admin/local-sale")({
           .filter(Boolean)
           .join(" ");
 
-        const { data: order, error: orderError } = await (supabaseAdmin as any)
+        const orderPayload: Record<string, unknown> = {
+          store_id: DEFAULT_STORE_ID,
+          customer_name: input.customerName,
+          customer_phone: input.customerPhone || "Sin telefono",
+          customer_address:
+            input.deliveryMethod === "delivery" ? input.customerAddress?.trim() || null : null,
+          delivery_method: input.deliveryMethod,
+          delivery_time: input.deliveryTime ? input.deliveryTime.trim() : null,
+          payment_method: input.paymentMethod,
+          payment_cash_amount:
+            input.paymentMethod === "dividido" ? Number(input.paymentCashAmount || 0) : null,
+          payment_transfer_amount:
+            input.paymentMethod === "dividido" ? Number(input.paymentTransferAmount || 0) : null,
+          payment_status: "approved",
+          notes: orderNotes || null,
+          status: "confirmed",
+          total,
+        };
+
+        let { data: order, error: orderError } = await (supabaseAdmin as any)
           .from("orders")
-          .insert({
-            store_id: DEFAULT_STORE_ID,
-            customer_name: input.customerName,
-            customer_phone: input.customerPhone || "Sin telefono",
-            customer_address: null,
-            delivery_method: "pickup",
-            payment_method: input.paymentMethod,
-            payment_status: "approved",
-            notes: orderNotes || null,
-            status: "confirmed",
-            total,
-          })
+          .insert(orderPayload)
           .select("*")
           .single();
+
+        if (
+          orderError?.message?.includes("delivery_time") ||
+          orderError?.message?.includes("payment_cash_amount") ||
+          orderError?.message?.includes("payment_transfer_amount")
+        ) {
+          delete orderPayload.delivery_time;
+          delete orderPayload.payment_cash_amount;
+          delete orderPayload.payment_transfer_amount;
+          const retry = await (supabaseAdmin as any)
+            .from("orders")
+            .insert(orderPayload)
+            .select("*")
+            .single();
+          order = retry.data;
+          orderError = retry.error;
+        }
 
         if (orderError || !order) {
           return json(
@@ -162,11 +223,16 @@ export const Route = createFileRoute("/api/admin/local-sale")({
             order_id: order.id,
             product_id: product.id,
             product_name: product.name,
-            unit_price: Number(product.price),
+            unit_price:
+              Number(product.price) +
+              item.addedIngredients.reduce(
+                (sum, ingredient) => sum + extraIngredientPrice(product, ingredient),
+                0,
+              ),
             quantity: item.quantity,
             base_ingredients: productIngredients(product),
             removed_ingredients: item.removedIngredients,
-            added_ingredients: [],
+            added_ingredients: item.addedIngredients,
             item_notes: item.notes || null,
           };
         });

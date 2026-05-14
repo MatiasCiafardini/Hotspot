@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-const menuShiftSchema = z.enum(["lunch", "dinner"]);
+const menuShiftSchema = z.enum(["lunch", "dinner", "midnight"]);
 
 export const saveCategorySchema = z.object({
   id: z.string().uuid().optional(),
@@ -9,7 +9,7 @@ export const saveCategorySchema = z.object({
   label: z.string().trim().min(1).max(120),
   sort_order: z.number().int().min(0).max(999),
   active: z.boolean(),
-  menu_shifts: z.array(menuShiftSchema).min(1).max(2),
+  menu_shifts: z.array(menuShiftSchema).min(1).max(3),
   originalKey: z.string().trim().max(80).nullable().optional(),
 });
 

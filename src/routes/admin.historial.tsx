@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Printer, ReceiptText, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { adminApiFetch } from "@/lib/admin-api";
+import { adminApiFetch, readApiError } from "@/lib/admin-api";
 import {
   AdminButton,
   AdminInput,
@@ -27,6 +27,7 @@ import {
   type CashSummaryDialogData,
 } from "@/components/admin/CashSummaryDialog";
 import { MENU_SHIFT_LABEL } from "@/lib/products";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/historial")({
   head: () => ({
@@ -38,6 +39,7 @@ export const Route = createFileRoute("/admin/historial")({
 function HistoryPage() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [closures, setClosures] = useState<CashClosure[]>([]);
+  const [settings, setSettings] = useState<StoreSettings>(DEFAULT_SETTINGS);
   const [tab, setTab] = useState<"orders" | "closures">("orders");
   const [cashSummary, setCashSummary] = useState<CashSummaryDialogData | null>(null);
   const [filters, setFilters] = useState({ date: "", status: "all", payment: "all", search: "" });
@@ -49,11 +51,63 @@ function HistoryPage() {
       .order("created_at", { ascending: false })
       .then(({ data }: { data: AdminOrder[] | null }) => setOrders(data ?? []));
 
+    (supabase as any)
+      .from("store_settings")
+      .select("*")
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }: { data: StoreSettings | null }) => {
+        if (data) setSettings({ ...DEFAULT_SETTINGS, ...data });
+      });
+
     adminApiFetch("/api/admin/day")
       .then((response) => (response.ok ? response.json() : null))
       .then((data: { closures?: CashClosure[] } | null) => setClosures(data?.closures ?? []))
       .catch(() => setClosures([]));
   }, []);
+
+  const canEditOrderStatus = (order: AdminOrder) =>
+    Boolean(
+      settings.is_open &&
+      settings.current_day_started_at &&
+      new Date(order.created_at) >= new Date(settings.current_day_started_at),
+    );
+
+  const updateStatus = async (order: AdminOrder, status: OrderStatus) => {
+    const previousStatus = order.status;
+    setOrders((current) =>
+      current.map((item) => (item.id === order.id ? { ...item, status } : item)),
+    );
+
+    try {
+      const response = await adminApiFetch("/api/admin/orders/status", {
+        method: "POST",
+        body: JSON.stringify({ orderId: order.id, status }),
+      });
+
+      if (!response.ok) {
+        const message = await readApiError(response, "No se pudo actualizar el pedido.");
+        setOrders((current) =>
+          current.map((item) =>
+            item.id === order.id ? { ...item, status: previousStatus } : item,
+          ),
+        );
+        return toast.error(message);
+      }
+
+      const data = await response.json().catch(() => null);
+      if (data?.order) {
+        setOrders((current) =>
+          current.map((item) => (item.id === order.id ? { ...item, ...data.order } : item)),
+        );
+      }
+    } catch (error) {
+      setOrders((current) =>
+        current.map((item) => (item.id === order.id ? { ...item, status: previousStatus } : item)),
+      );
+      toast.error(error instanceof Error ? error.message : "No se pudo actualizar el pedido.");
+    }
+  };
 
   const filtered = useMemo(() => {
     return orders.filter((order) => {
@@ -142,11 +196,25 @@ function HistoryPage() {
                     {order.customer_phone} - {formatDateTime(order.created_at)}
                   </p>
                 </div>
-                <span
-                  className={`w-fit rounded-full border px-2 py-1 text-xs ${ORDER_STATUS_CLASS[order.status]}`}
-                >
-                  {ORDER_STATUS_LABEL[order.status]}
-                </span>
+                {canEditOrderStatus(order) ? (
+                  <AdminSelect
+                    value={order.status}
+                    onChange={(event) => updateStatus(order, event.target.value as OrderStatus)}
+                  >
+                    {Object.keys(ORDER_STATUS_LABEL).map((status) => (
+                      <option key={status} value={status}>
+                        {ORDER_STATUS_LABEL[status as OrderStatus]}
+                      </option>
+                    ))}
+                  </AdminSelect>
+                ) : (
+                  <span
+                    className={`w-fit rounded-full border px-2 py-1 text-xs ${ORDER_STATUS_CLASS[order.status]}`}
+                    title="No se puede modificar porque la caja de este pedido ya fue cerrada."
+                  >
+                    {ORDER_STATUS_LABEL[order.status]}
+                  </span>
+                )}
                 <span className="font-display text-xl">{formatMoney(order.total)}</span>
                 <div className="flex flex-wrap gap-2">
                   <AdminButton

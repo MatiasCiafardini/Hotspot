@@ -57,6 +57,13 @@ export const createCustomerOrderSchema = z.object({
   customerPhone: z.string().trim().min(6, "El telefono es obligatorio.").max(40),
   deliveryMethod: z.enum(["pickup", "delivery"]),
   customerAddress: z.string().trim().max(255).nullable().optional(),
+  deliveryTime: z
+    .string()
+    .trim()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "El horario de entrega es invalido.")
+    .nullable()
+    .optional()
+    .or(z.literal("")),
   notes: z.string().trim().max(500).nullable().optional(),
   paymentMethod: z.string().trim().max(40).default("transferencia"),
   paymentStatus: z.string().trim().max(40).default("pending"),
@@ -305,13 +312,13 @@ export async function createCustomerOrder(
 ) {
   const { data: settings, error: settingsError } = await (supabaseAdmin as any)
     .from("store_settings")
-    .select("is_open, current_menu_shift")
+    .select("is_open, current_day_started_at, current_menu_shift")
     .eq("store_id", customer.store_id)
     .limit(1)
     .maybeSingle();
 
   if (settingsError) throw settingsError;
-  if (!settings?.is_open) {
+  if (!settings?.is_open || !settings.current_day_started_at) {
     throw new Error("El local esta cerrado. Volve a intentar cuando iniciemos el dia.");
   }
 
@@ -354,24 +361,42 @@ export async function createCustomerOrder(
     }
   }
 
-  const { data, error } = await (supabaseAdmin as any)
+  if (settings.current_menu_shift === "midnight" && input.deliveryMethod === "delivery") {
+    throw new Error("Durante madrugada solo tomamos pedidos para retiro.");
+  }
+
+  const orderPayload: Record<string, unknown> = {
+    store_id: customer.store_id,
+    customer_id: customer.id,
+    customer_name: input.customerName.trim(),
+    customer_phone: input.customerPhone.trim(),
+    customer_address:
+      input.deliveryMethod === "delivery" ? input.customerAddress?.trim() || null : null,
+    delivery_method: input.deliveryMethod,
+    delivery_time: input.deliveryTime ? input.deliveryTime.trim() : null,
+    payment_method: input.paymentMethod,
+    payment_status: input.paymentStatus,
+    notes: input.notes?.trim() || null,
+    status: input.status,
+    total: input.total,
+  };
+
+  let { data, error } = await (supabaseAdmin as any)
     .from("orders")
-    .insert({
-      store_id: customer.store_id,
-      customer_id: customer.id,
-      customer_name: input.customerName.trim(),
-      customer_phone: input.customerPhone.trim(),
-      customer_address:
-        input.deliveryMethod === "delivery" ? input.customerAddress?.trim() || null : null,
-      delivery_method: input.deliveryMethod,
-      payment_method: input.paymentMethod,
-      payment_status: input.paymentStatus,
-      notes: input.notes?.trim() || null,
-      status: input.status,
-      total: input.total,
-    })
+    .insert(orderPayload)
     .select("*")
     .single();
+
+  if (error?.message?.includes("delivery_time")) {
+    delete orderPayload.delivery_time;
+    const retry = await (supabaseAdmin as any)
+      .from("orders")
+      .insert(orderPayload)
+      .select("*")
+      .single();
+    data = retry.data;
+    error = retry.error;
+  }
 
   if (error) throw error;
 
