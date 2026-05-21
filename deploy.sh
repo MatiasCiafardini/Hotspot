@@ -112,12 +112,16 @@ restart_pm2() {
   npm_bin="$(command -v npm)"
 
   if pm2 describe "$APP_NAME" >/dev/null 2>&1; then
-    log "Reiniciando PM2: $APP_NAME."
-    pm2 restart "$APP_NAME" --update-env
+    log "Recreando proceso PM2: $APP_NAME."
+    pm2 delete "$APP_NAME"
   else
     log "Creando proceso PM2: $APP_NAME."
-    pm2 start "$npm_bin" --name "$APP_NAME" -- run preview -- --host "$APP_HOST" --port "$APP_PORT"
   fi
+
+  pm2 start "$npm_bin" \
+    --name "$APP_NAME" \
+    --cwd "$APP_DIR" \
+    -- run preview -- --host "$APP_HOST" --port "$APP_PORT"
 
   pm2 save
 }
