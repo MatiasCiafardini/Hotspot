@@ -63,6 +63,7 @@ export type StoreSettings = {
   hours: string;
   contact_phone: string;
   address: string;
+  delivery_fee: number;
   transfer_alias: string;
   payment_methods: string[];
   accepts_cash: boolean;
@@ -142,6 +143,7 @@ export const DEFAULT_SETTINGS: StoreSettings = {
     "Almuerzo Mie-Sab 11:30 a 14:30. Cena Mie-Sab 19:30 a 23:30 y Dom 19:00 a 23:30. Viernes y sabado: cena hasta 23:30. Luego menu madrugada hasta 05:00, solo retiro.",
   contact_phone: "+54 9 11 0000-0000",
   address: "Direccion del local",
+  delivery_fee: 5500,
   transfer_alias: "HOTSPOT.PEDIDOS",
   payment_methods: ["Efectivo", "Transferencia"],
   accepts_cash: true,

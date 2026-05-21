@@ -90,6 +90,7 @@ function LocalSalePage() {
   const [customerPhone, setCustomerPhone] = useState("");
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("pickup");
   const [customerAddress, setCustomerAddress] = useState("");
+  const [deliveryFee, setDeliveryFee] = useState(DEFAULT_SETTINGS.delivery_fee);
   const [deliveryTime, setDeliveryTime] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("efectivo");
   const [paymentCashAmount, setPaymentCashAmount] = useState(0);
@@ -128,7 +129,11 @@ function LocalSalePage() {
       .limit(1)
       .maybeSingle()
       .then(({ data }: { data: StoreSettings | null }) => {
-        if (data) setSettings({ ...DEFAULT_SETTINGS, ...data });
+        if (data) {
+          const nextSettings = { ...DEFAULT_SETTINGS, ...data };
+          setSettings(nextSettings);
+          setDeliveryFee(Number(nextSettings.delivery_fee) || 0);
+        }
       });
   }, []);
 
@@ -189,7 +194,9 @@ function LocalSalePage() {
       discountType === "percent" ? subtotal * (Math.min(100, Math.max(0, value)) / 100) : value;
     return Math.min(subtotal, Math.max(0, amount));
   }, [discountType, discountValue, subtotal]);
-  const total = Math.max(0, subtotal - discountAmount);
+  const safeDeliveryFee = Math.max(0, Number(deliveryFee) || 0);
+  const deliveryAmount = deliveryMethod === "delivery" ? safeDeliveryFee : 0;
+  const total = Math.max(0, subtotal - discountAmount + deliveryAmount);
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const openCustomize = (product: Product) => {
@@ -239,6 +246,7 @@ function LocalSalePage() {
     setCustomerPhone("");
     setDeliveryMethod("pickup");
     setCustomerAddress("");
+    setDeliveryFee(Number(settings.delivery_fee) || 0);
     setDeliveryTime("");
     setPaymentMethod("efectivo");
     setPaymentCashAmount(0);
@@ -277,6 +285,7 @@ function LocalSalePage() {
           customerPhone: cleanPhone,
           customerAddress: deliveryMethod === "delivery" ? cleanAddress : "",
           deliveryMethod,
+          deliveryFee: deliveryMethod === "delivery" ? safeDeliveryFee : 0,
           deliveryTime,
           paymentMethod,
           paymentCashAmount: paymentMethod === "dividido" ? paymentCashAmount : null,
@@ -451,6 +460,7 @@ function LocalSalePage() {
           customerPhone={customerPhone}
           customerAddress={customerAddress}
           deliveryMethod={deliveryMethod}
+          deliveryFee={deliveryFee}
           deliveryTime={deliveryTime}
           discountAmount={discountAmount}
           discountType={discountType}
@@ -467,7 +477,11 @@ function LocalSalePage() {
           onCustomerNameChange={setCustomerName}
           onCustomerPhoneChange={setCustomerPhone}
           onCustomerAddressChange={setCustomerAddress}
-          onDeliveryMethodChange={setDeliveryMethod}
+          onDeliveryFeeChange={setDeliveryFee}
+          onDeliveryMethodChange={(method) => {
+            setDeliveryMethod(method);
+            if (method === "delivery") setDeliveryFee(Number(settings.delivery_fee) || 0);
+          }}
           onDeliveryTimeChange={setDeliveryTime}
           onDiscountTypeChange={setDiscountType}
           onDiscountValueChange={setDiscountValue}
@@ -760,6 +774,7 @@ function CheckoutStep({
   customerName,
   customerPhone,
   deliveryMethod,
+  deliveryFee,
   deliveryTime,
   discountAmount,
   discountType,
@@ -776,6 +791,7 @@ function CheckoutStep({
   onCustomerAddressChange,
   onCustomerNameChange,
   onCustomerPhoneChange,
+  onDeliveryFeeChange,
   onDeliveryMethodChange,
   onDeliveryTimeChange,
   onDiscountTypeChange,
@@ -794,6 +810,7 @@ function CheckoutStep({
   customerName: string;
   customerPhone: string;
   deliveryMethod: DeliveryMethod;
+  deliveryFee: number;
   deliveryTime: string;
   discountAmount: number;
   discountType: DiscountType;
@@ -810,6 +827,7 @@ function CheckoutStep({
   onCustomerAddressChange: (value: string) => void;
   onCustomerNameChange: (value: string) => void;
   onCustomerPhoneChange: (value: string) => void;
+  onDeliveryFeeChange: (value: number) => void;
   onDeliveryMethodChange: (value: DeliveryMethod) => void;
   onDeliveryTimeChange: (value: string) => void;
   onDiscountTypeChange: (value: DiscountType) => void;
@@ -886,13 +904,26 @@ function CheckoutStep({
             </p>
           )}
           {deliveryMethod === "delivery" && (
-            <AdminField label="Direccion">
-              <AdminInput
-                value={customerAddress}
-                onChange={(event) => onCustomerAddressChange(event.target.value)}
-                placeholder="Calle, numero, piso/depto"
-              />
-            </AdminField>
+            <div className="grid gap-3 sm:grid-cols-[1fr_160px]">
+              <AdminField label="Direccion">
+                <AdminInput
+                  value={customerAddress}
+                  onChange={(event) => onCustomerAddressChange(event.target.value)}
+                  placeholder="Calle, numero, piso/depto"
+                />
+              </AdminField>
+              <AdminField label="Costo de envio">
+                <AdminInput
+                  type="number"
+                  min={0}
+                  step={1}
+                  inputMode="decimal"
+                  value={deliveryFee || ""}
+                  onChange={(event) => onDeliveryFeeChange(Number(event.target.value))}
+                  placeholder="5500"
+                />
+              </AdminField>
+            </div>
           )}
           <AdminField label="Horario de entrega opcional">
             <AdminTimePicker value={deliveryTime} onChange={onDeliveryTimeChange} />
@@ -1015,6 +1046,12 @@ function CheckoutStep({
             <span>Descuento</span>
             <span>-{formatMoney(discountAmount)}</span>
           </div>
+          {deliveryMethod === "delivery" && (
+            <div className="flex items-center justify-between text-zinc-400">
+              <span>Envio</span>
+              <span>{formatMoney(deliveryFee)}</span>
+            </div>
+          )}
           <div className="flex items-center justify-between text-white">
             <span className="font-display text-2xl">Total</span>
             <span className="font-display text-4xl text-orange-300">{formatMoney(total)}</span>

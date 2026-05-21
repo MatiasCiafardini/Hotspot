@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS public.store_settings (
   hours TEXT NOT NULL DEFAULT '',
   contact_phone TEXT NOT NULL DEFAULT '',
   address TEXT NOT NULL DEFAULT '',
+  delivery_fee NUMERIC NOT NULL DEFAULT 5500,
   payment_methods TEXT[] NOT NULL DEFAULT '{"Efectivo","Transferencia"}',
   accepts_cash BOOLEAN NOT NULL DEFAULT true,
   accepts_transfer BOOLEAN NOT NULL DEFAULT true,

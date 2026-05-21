@@ -19,12 +19,13 @@ import {
 } from "@/lib/products";
 import { toast } from "sonner";
 
-type SettingsTab = "account" | "local" | "categories" | "payments";
+type SettingsTab = "account" | "local" | "categories" | "shipping" | "payments";
 
 const SETTINGS_TABS: { key: SettingsTab; label: string }[] = [
   { key: "account", label: "Cuenta" },
   { key: "local", label: "Local" },
   { key: "categories", label: "Categorias" },
+  { key: "shipping", label: "Costo de envios" },
   { key: "payments", label: "Pagos y comanda" },
 ];
 
@@ -503,6 +504,30 @@ function SettingsPage() {
               </AdminField>
               <AdminButton onClick={save}>
                 <Save className="h-4 w-4" /> Guardar configuracion
+              </AdminButton>
+            </div>
+          </section>
+        )}
+
+        {activeTab === "shipping" && (
+          <section className="rounded-lg border border-white/10 bg-zinc-900/80 p-5">
+            <h2 className="font-display text-3xl">Costo de envios</h2>
+            <div className="mt-4 grid gap-3">
+              <AdminField label="Costo de envio predeterminado">
+                <AdminInput
+                  type="number"
+                  min={0}
+                  step={1}
+                  inputMode="decimal"
+                  value={settings.delivery_fee ?? DEFAULT_SETTINGS.delivery_fee}
+                  onChange={(e) =>
+                    setSettings({ ...settings, delivery_fee: Number(e.target.value) })
+                  }
+                  placeholder="5500"
+                />
+              </AdminField>
+              <AdminButton onClick={save}>
+                <Save className="h-4 w-4" /> Guardar costo de envio
               </AdminButton>
             </div>
           </section>

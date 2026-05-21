@@ -155,6 +155,7 @@ CREATE TABLE IF NOT EXISTS public.store_settings (
   hours TEXT NOT NULL DEFAULT '',
   contact_phone TEXT NOT NULL DEFAULT '',
   address TEXT NOT NULL DEFAULT '',
+  delivery_fee NUMERIC NOT NULL DEFAULT 5500,
   payment_methods TEXT[] NOT NULL DEFAULT '{"Efectivo","Transferencia"}',
   accepts_cash BOOLEAN NOT NULL DEFAULT true,
   accepts_transfer BOOLEAN NOT NULL DEFAULT true,
@@ -332,7 +333,7 @@ INSERT INTO public.stock_items (name, type, quantity, low_stock_threshold, avail
 ON CONFLICT (name, type) DO NOTHING;
 
 INSERT INTO public.store_settings (
-  store_name, logo_url, hours, contact_phone, address, payment_methods,
+  store_name, logo_url, hours, contact_phone, address, delivery_fee, payment_methods,
   accepts_cash, accepts_transfer, automatic_message, print_width_mm
 )
 SELECT
@@ -341,6 +342,7 @@ SELECT
   'Todos los dias de 19:00 a 00:00',
   '+54 9 11 0000-0000',
   'Direccion del local',
+  5500,
   ARRAY['Efectivo', 'Transferencia'],
   true,
   true,

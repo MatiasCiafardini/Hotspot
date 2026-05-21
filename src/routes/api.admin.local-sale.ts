@@ -16,6 +16,7 @@ const localSaleSchema = z.object({
   customerName: z.string().trim().min(1, "El nombre es obligatorio.").max(120),
   customerPhone: z.string().trim().max(40).optional(),
   deliveryMethod: z.enum(["pickup", "delivery"]).default("pickup"),
+  deliveryFee: z.number().finite().nonnegative().default(0),
   customerAddress: z.string().trim().max(255).optional(),
   deliveryTime: z
     .string()
@@ -152,7 +153,9 @@ export const Route = createFileRoute("/api/admin/local-sale")({
             ? subtotal * (Math.min(100, discountValue) / 100)
             : discountValue;
         const safeDiscount = Math.min(subtotal, Math.max(0, discountAmount));
-        const total = Math.max(0, subtotal - safeDiscount);
+        const deliveryFee =
+          input.deliveryMethod === "delivery" ? Number(input.deliveryFee) || 0 : 0;
+        const total = Math.max(0, subtotal - safeDiscount + deliveryFee);
         if (input.paymentMethod === "dividido") {
           const cash = Number(input.paymentCashAmount || 0);
           const transfer = Number(input.paymentTransferAmount || 0);
@@ -164,7 +167,8 @@ export const Route = createFileRoute("/api/admin/local-sale")({
           safeDiscount > 0
             ? `Descuento ${input.discountType === "percent" ? `${discountValue}%` : formatMoney(discountValue)}: -${formatMoney(safeDiscount)}.`
             : "";
-        const orderNotes = ["Venta en local.", discountLabel, input.notes]
+        const deliveryLabel = deliveryFee > 0 ? `Envio: ${formatMoney(deliveryFee)}.` : "";
+        const orderNotes = ["Venta en local.", deliveryLabel, discountLabel, input.notes]
           .filter(Boolean)
           .join(" ");
 

@@ -28,7 +28,6 @@ export const Route = createFileRoute("/checkout")({
 });
 
 const STEPS = ["Tus datos", "Entrega", "Confirmar"] as const;
-const DELIVERY_FEE = 5000;
 
 type CheckoutItem = ReturnType<typeof useCart>["items"][number];
 
@@ -88,7 +87,8 @@ function CheckoutPage() {
     notes: "",
   });
   const midnightOnlyPickup = settings.current_menu_shift === "midnight";
-  const orderTotal = total + (form.method === "delivery" ? DELIVERY_FEE : 0);
+  const deliveryFee = Math.max(0, Number(settings.delivery_fee) || 0);
+  const orderTotal = total + (form.method === "delivery" ? deliveryFee : 0);
   const storeOpen = settings.is_open === true;
 
   useEffect(() => {
@@ -541,7 +541,7 @@ function CheckoutPage() {
                   <div className="flex justify-between border-t border-ink/20 pt-3">
                     <span className="font-display text-xl">Delivery</span>
                     <span className="font-display text-xl text-ink">
-                      {formatMoney(DELIVERY_FEE)}
+                      {formatMoney(deliveryFee)}
                     </span>
                   </div>
                 )}
