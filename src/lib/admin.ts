@@ -167,8 +167,9 @@ export type ExtraIngredientOption = {
 };
 
 export const DEFAULT_EXTRA_INGREDIENT_PRICES: Record<string, number> = {
-  "Carne y cheddar": 3500,
+  "Carne y cheddar": 4000,
   Carne: 3500,
+  Panceta: 1500,
   Lechuga: 1000,
   Cebolla: 1000,
   Tomate: 1000,
@@ -177,6 +178,7 @@ export const DEFAULT_EXTRA_INGREDIENT_PRICES: Record<string, number> = {
   "Cebolla caramelizada": 1500,
   "Aros de cebolla": 1500,
   "Chedar feta": 1000,
+  Huevo: 1500,
   "Huevo frito": 1500,
   "Chedar liquido": 2000,
   Mayonesa: 1000,
@@ -221,7 +223,8 @@ function defaultExtraNameForIngredient(ingredient: string) {
     return "Cebolla caramelizada";
   }
   if (normalized === "cebolla" || normalized.includes("cebolla cruda")) return "Cebolla";
-  if (normalized.includes("huevo")) return "Huevo frito";
+  if (normalized.includes("panceta") || normalized.includes("bacon")) return "Panceta";
+  if (normalized.includes("huevo")) return "Huevo";
   if (
     normalized.includes("cheddar liquido") ||
     normalized.includes("chedar liquido") ||
@@ -283,6 +286,22 @@ export function productExtraIngredients(
     product.extra_ingredient_prices ?? {},
   );
   const seen = new Set(options.map((option) => option.name));
+  const addOption = (name: string) => {
+    if (seen.has(name)) return;
+    seen.add(name);
+    options.push({
+      name,
+      price: Number(
+        product.extra_ingredient_prices?.[name] ?? DEFAULT_EXTRA_INGREDIENT_PRICES[name] ?? 0,
+      ),
+    });
+  };
+
+  if (product.category === "burgers") {
+    addOption("Carne y cheddar");
+    addOption("Panceta");
+    addOption("Huevo");
+  }
 
   Object.entries(product.extra_ingredient_prices ?? {}).forEach(([name, price]) => {
     if (seen.has(name)) return;
