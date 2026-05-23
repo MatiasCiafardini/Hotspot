@@ -69,6 +69,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     };
   }, [navigate]);
 
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [pathname]);
+
   const logout = async () => {
     await supabase.auth.signOut();
     navigate({ to: "/admin" });
@@ -164,7 +168,7 @@ function AdminSidebar({
       )}
     >
       <div className="flex items-center justify-between border-b border-white/10 p-4">
-        <Link to="/admin/dashboard" className="flex min-w-0 items-center gap-3">
+        <Link to="/admin/dashboard" onClick={onClose} className="flex min-w-0 items-center gap-3">
           <img
             src={logo}
             alt="Hotspot"

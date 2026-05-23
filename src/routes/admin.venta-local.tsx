@@ -25,11 +25,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { adminApiFetch, readApiError } from "@/lib/admin-api";
 import {
   DEFAULT_SETTINGS,
+  printComanda,
   extraIngredientPrice,
   formatIngredientList,
   formatMoney,
   productExtraIngredients,
   productIngredients,
+  type AdminOrder,
   type StoreSettings,
 } from "@/lib/admin";
 import {
@@ -157,6 +159,12 @@ function LocalSalePage() {
       setCustomerAddress("");
     }
   }, [deliveryMethod, midnightOnlyPickup]);
+
+  useEffect(() => {
+    if (step === "checkout") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [step]);
 
   const visibleProducts = useMemo(() => {
     const cleanQuery = query.trim().toLowerCase();
@@ -308,6 +316,8 @@ function LocalSalePage() {
         return;
       }
 
+      const data = (await response.json().catch(() => null)) as { order?: AdminOrder } | null;
+      if (data?.order) printComanda(data.order, settings);
       toast.success("Venta cargada como pedido confirmado.");
       resetForm();
       navigate({ to: "/admin/pedidos" });

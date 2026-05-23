@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, Eye, PackageCheck, Printer, X } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Eye, PackageCheck, Plus, Printer, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminButton, AdminPageHeader, AdminSelect } from "@/components/admin/AdminBits";
 import { adminApiFetch, readApiError } from "@/lib/admin-api";
@@ -55,9 +55,24 @@ function formatPaymentMethod(order: AdminOrder) {
   )} transferencia)`;
 }
 
+function orderItemCount(order: AdminOrder) {
+  return order.order_items?.reduce((sum, item) => sum + item.quantity, 0) ?? 0;
+}
+
+function orderSummary(order: AdminOrder) {
+  return (
+    order.order_items
+      ?.slice(0, 3)
+      .map((item) => `${item.quantity} x ${item.product_name}`)
+      .join(" - ") || "Sin items"
+  );
+}
+
 function OrdersPage() {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [selected, setSelected] = useState<AdminOrder | null>(null);
+  const [expandedOrderIds, setExpandedOrderIds] = useState<Set<string>>(new Set());
   const [settings, setSettings] = useState<StoreSettings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
   const knownOrderIdsRef = useRef<Set<string>>(new Set());
@@ -67,7 +82,7 @@ function OrdersPage() {
     const { data, error } = await (supabase as any)
       .from("orders")
       .select("*, order_items(*)")
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: true });
     if (error) {
       if (!options?.silentErrors) toast.error("No se pudieron cargar los pedidos.");
       setLoading(false);
@@ -191,6 +206,11 @@ function OrdersPage() {
         eyebrow="Operacion"
         title="Pedidos"
         description="Nuevos pedidos, detalle completo, confirmacion y comandas limpias para cocina."
+        action={
+          <AdminButton onClick={() => navigate({ to: "/admin/venta-local" })}>
+            <Plus className="h-4 w-4" /> Nuevo pedido
+          </AdminButton>
+        }
       />
 
       <div className="mb-4 rounded-lg border border-orange-400/30 bg-orange-500/10 p-4 text-sm text-orange-100">
@@ -198,44 +218,55 @@ function OrdersPage() {
         la comanda.
       </div>
 
-      <div className="grid gap-4">
+      <div className="grid gap-3">
         {orders.map((order) => (
           <article
             key={order.id}
-            className="rounded-lg border border-white/10 bg-zinc-900/80 p-4 shadow-lg"
+            className="rounded-lg border border-white/10 bg-zinc-900/80 p-3 shadow-lg"
           >
             {(() => {
               const canConfirmOrReject = ACTIONABLE_ORDER_STATUSES.includes(order.status);
+              const isExpanded = expandedOrderIds.has(order.id);
 
               return (
-                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
                       <span className="font-mono text-sm text-orange-300">
                         {shortOrderId(order.id)}
                       </span>
                       <span
-                        className={`rounded-full border px-2 py-1 text-xs ${ORDER_STATUS_CLASS[order.status]}`}
+                        className={`rounded-full border px-2 py-0.5 ${ORDER_STATUS_CLASS[order.status]}`}
                       >
                         {ORDER_STATUS_LABEL[order.status]}
                       </span>
-                      <span className="text-xs text-zinc-500">
-                        {formatDateTime(order.created_at)}
-                      </span>
+                      <span className="text-zinc-500">{formatDateTime(order.created_at)}</span>
+                      <span className="text-zinc-500">{orderItemCount(order)} item(s)</span>
+                      <strong className="font-display text-xl text-orange-300">
+                        {formatMoney(order.total)}
+                      </strong>
                     </div>
-                    <h2 className="mt-2 font-display text-3xl text-white">{order.customer_name}</h2>
+                    <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                      <h2 className="font-display text-2xl leading-none text-white">
+                        {order.customer_name}
+                      </h2>
+                      <p className="text-sm text-zinc-400">
+                        {orderSummary(order)}
+                        {(order.order_items?.length ?? 0) > 3 ? "..." : ""}
+                      </p>
+                    </div>
                     {order.delivery_time && (
-                      <p className="mt-1 text-sm font-semibold text-orange-200">
+                      <p className="mt-1 text-xs font-semibold text-orange-200">
                         Horario de entrega {formatDeliveryTime(order.delivery_time)}
                       </p>
                     )}
-                    <p className="mt-1 text-sm text-zinc-400">
+                    <p className="mt-1 text-xs text-zinc-400">
                       Tel {order.customer_phone}
                       {order.customer_address
                         ? ` · ${order.customer_address}`
                         : " · Retiro en local"}
                     </p>
-                    <p className="mt-1 text-sm text-zinc-400">
+                    <p className="mt-1 text-xs text-zinc-400">
                       Pago {order.payment_method || "A confirmar"} ·{" "}
                       {PAYMENT_STATUS_LABEL[order.payment_status || "pending"]}
                       {order.payment_receipt_url && (
@@ -251,7 +282,37 @@ function OrdersPage() {
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 xl:justify-end">
+                    <AdminSelect
+                      className="w-44"
+                      value={order.status}
+                      onChange={(event) => updateStatus(order, event.target.value as OrderStatus)}
+                      aria-label="Estado del pedido"
+                    >
+                      {Object.keys(ORDER_STATUS_LABEL).map((status) => (
+                        <option key={status} value={status}>
+                          {ORDER_STATUS_LABEL[status as OrderStatus]}
+                        </option>
+                      ))}
+                    </AdminSelect>
+                    <AdminButton
+                      variant="ghost"
+                      onClick={() =>
+                        setExpandedOrderIds((current) => {
+                          const next = new Set(current);
+                          if (next.has(order.id)) next.delete(order.id);
+                          else next.add(order.id);
+                          return next;
+                        })
+                      }
+                    >
+                      {isExpanded ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                      {isExpanded ? "Ocultar" : "Desplegar"}
+                    </AdminButton>
                     <AdminButton variant="ghost" onClick={() => setSelected(order)}>
                       <Eye className="h-4 w-4" /> Ver detalle
                     </AdminButton>
@@ -276,69 +337,76 @@ function OrdersPage() {
               );
             })()}
 
-            <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_200px]">
-              <div className="space-y-2">
-                {order.order_items?.map((item) => (
-                  <div key={item.id} className="rounded-md border border-white/10 bg-black/30 p-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="font-semibold text-white">
-                        {item.quantity} x {item.product_name}
-                      </p>
-                      <p className="font-mono text-sm text-zinc-400">
-                        {formatMoney(item.unit_price * item.quantity)}
-                      </p>
+            {expandedOrderIds.has(order.id) && (
+              <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_200px]">
+                <div className="space-y-2">
+                  {order.order_items?.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-md border border-white/10 bg-black/30 p-3"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="font-semibold text-white">
+                          {item.quantity} x {item.product_name}
+                        </p>
+                        <p className="font-mono text-sm text-zinc-400">
+                          {formatMoney(item.unit_price * item.quantity)}
+                        </p>
+                      </div>
+                      <div className="mt-2 grid gap-1 text-xs text-zinc-400 md:grid-cols-2">
+                        <p>
+                          Base:{" "}
+                          {item.base_ingredients?.length
+                            ? item.base_ingredients.join(", ")
+                            : "Sin detalle"}
+                        </p>
+                        <p>
+                          Quitados:{" "}
+                          {item.removed_ingredients?.length
+                            ? formatIngredientList(item.removed_ingredients)
+                            : "Ninguno"}
+                        </p>
+                        <p>
+                          Agregados:{" "}
+                          {item.added_ingredients?.length
+                            ? formatIngredientList(item.added_ingredients)
+                            : "Ninguno"}
+                        </p>
+                        <p>Obs: {item.item_notes || "Sin observaciones"}</p>
+                      </div>
                     </div>
-                    <div className="mt-2 grid gap-1 text-xs text-zinc-400 md:grid-cols-2">
-                      <p>
-                        Base:{" "}
-                        {item.base_ingredients?.length
-                          ? item.base_ingredients.join(", ")
-                          : "Sin detalle"}
-                      </p>
-                      <p>
-                        Quitados:{" "}
-                        {item.removed_ingredients?.length
-                          ? formatIngredientList(item.removed_ingredients)
-                          : "Ninguno"}
-                      </p>
-                      <p>
-                        Agregados:{" "}
-                        {item.added_ingredients?.length
-                          ? formatIngredientList(item.added_ingredients)
-                          : "Ninguno"}
-                      </p>
-                      <p>Obs: {item.item_notes || "Sin observaciones"}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="rounded-md border border-white/10 bg-black/30 p-3">
-                <p className="text-xs uppercase text-zinc-500">Total pedido</p>
-                <p className="font-display text-3xl text-orange-300">{formatMoney(order.total)}</p>
-                <p className="mt-3 text-xs uppercase text-zinc-500">Notas cliente</p>
-                <p className="text-sm text-zinc-300">{order.notes || "Sin notas"}</p>
-                <div className="mt-3">
-                  <AdminSelect
-                    value={order.status}
-                    onChange={(event) => updateStatus(order, event.target.value as OrderStatus)}
-                  >
-                    {Object.keys(ORDER_STATUS_LABEL).map((status) => (
-                      <option key={status} value={status}>
-                        {ORDER_STATUS_LABEL[status as OrderStatus]}
-                      </option>
-                    ))}
-                  </AdminSelect>
+                  ))}
                 </div>
-                {order.status !== "delivered" && (
-                  <AdminButton
-                    className="mt-3 w-full"
-                    onClick={() => updateStatus(order, "delivered")}
-                  >
-                    <PackageCheck className="h-4 w-4" /> Entregado
-                  </AdminButton>
-                )}
+                <div className="rounded-md border border-white/10 bg-black/30 p-3">
+                  <p className="text-xs uppercase text-zinc-500">Total pedido</p>
+                  <p className="font-display text-3xl text-orange-300">
+                    {formatMoney(order.total)}
+                  </p>
+                  <p className="mt-3 text-xs uppercase text-zinc-500">Notas cliente</p>
+                  <p className="text-sm text-zinc-300">{order.notes || "Sin notas"}</p>
+                  <div className="mt-3">
+                    <AdminSelect
+                      value={order.status}
+                      onChange={(event) => updateStatus(order, event.target.value as OrderStatus)}
+                    >
+                      {Object.keys(ORDER_STATUS_LABEL).map((status) => (
+                        <option key={status} value={status}>
+                          {ORDER_STATUS_LABEL[status as OrderStatus]}
+                        </option>
+                      ))}
+                    </AdminSelect>
+                  </div>
+                  {order.status !== "delivered" && (
+                    <AdminButton
+                      className="mt-3 w-full"
+                      onClick={() => updateStatus(order, "delivered")}
+                    >
+                      <PackageCheck className="h-4 w-4" /> Entregado
+                    </AdminButton>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </article>
         ))}
 

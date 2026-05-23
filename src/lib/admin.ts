@@ -278,10 +278,19 @@ export function buildExtraIngredientOptions(
 export function productExtraIngredients(
   product: Pick<Product, "category" | "ingredients" | "extra_ingredient_prices">,
 ) {
-  return buildExtraIngredientOptions(
+  const options = buildExtraIngredientOptions(
     productIngredients(product),
     product.extra_ingredient_prices ?? {},
   );
+  const seen = new Set(options.map((option) => option.name));
+
+  Object.entries(product.extra_ingredient_prices ?? {}).forEach(([name, price]) => {
+    if (seen.has(name)) return;
+    seen.add(name);
+    options.push({ name, price: Number(price) || 0 });
+  });
+
+  return options;
 }
 
 export function extraIngredientPrice(
@@ -431,12 +440,12 @@ export function buildComandaLines(order: AdminOrder, settings: StoreSettings = D
 export function downloadComandaPdf(order: AdminOrder, settings: StoreSettings = DEFAULT_SETTINGS) {
   const lines = buildComandaLines(order, settings);
   const pageWidth = 226;
-  const lineHeight = 14;
+  const lineHeight = 16;
   const pageHeight = Math.max(360, 42 + lines.length * lineHeight);
   const content = lines
     .map(
       (line, index) =>
-        `BT /F1 10 Tf 12 ${pageHeight - 24 - index * lineHeight} Td (${escapePdfText(line)}) Tj ET`,
+        `BT /F1 11 Tf 12 ${pageHeight - 24 - index * lineHeight} Td (${escapePdfText(line)}) Tj ET`,
     )
     .join("\n");
   const objects = [
@@ -489,7 +498,7 @@ function buildComandaHtml(order: AdminOrder, settings: StoreSettings = DEFAULT_S
             font-family: Courier, monospace;
             color: #000;
             background: #fff;
-            font-size: 13px;
+            font-size: 15px;
           }
           .ticket {
             box-sizing: border-box;
@@ -504,7 +513,7 @@ function buildComandaHtml(order: AdminOrder, settings: StoreSettings = DEFAULT_S
             margin: 0 auto 3mm;
             filter: grayscale(1) contrast(1.2);
           }
-          pre { white-space: pre-wrap; margin: 0; line-height: 1.4; overflow: visible; }
+          pre { white-space: pre-wrap; margin: 0; line-height: 1.35; overflow: visible; }
           @media print {
             body { width: ${printWidthMm}mm; }
           }

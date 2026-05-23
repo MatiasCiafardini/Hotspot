@@ -45,6 +45,12 @@ const blank: Partial<Product> = {
 const PRODUCT_IMAGES_BUCKET = "product-images";
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
+type ExtraIngredientRow = {
+  id: string;
+  name: string;
+  price: number;
+};
+
 function extensionFromFile(file: File) {
   return (
     file.name
@@ -60,6 +66,8 @@ function ProductsPage() {
   const [categories, setCategories] = useState<ProductCategory[]>(DEFAULT_CATEGORIES);
   const [editing, setEditing] = useState<Partial<Product>>(blank);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [ingredientsText, setIngredientsText] = useState("");
+  const [extraIngredientRows, setExtraIngredientRows] = useState<ExtraIngredientRow[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [importingMenu, setImportingMenu] = useState(false);
 
@@ -87,9 +95,68 @@ function ProductsPage() {
   }, []);
 
   const hasRealMenu = products.some((product) => product.name === "BIG MC");
-  const editingIngredients = editing.ingredients ?? [];
-  const editingExtraPrices = editing.extra_ingredient_prices ?? {};
-  const editingExtraOptions = buildExtraIngredientOptions(editingIngredients, editingExtraPrices);
+  const parseIngredients = (value: string) =>
+    value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+  const rowsFromExtraPrices = (prices: Record<string, number> | null | undefined) =>
+    Object.entries(prices ?? {}).map(([name, price]) => ({
+      id: crypto.randomUUID(),
+      name,
+      price: Number(price) || 0,
+    }));
+
+  const extraPricesFromRows = (rows = extraIngredientRows) =>
+    Object.fromEntries(
+      rows
+        .map((row) => [row.name.trim(), Number(row.price) || 0] as const)
+        .filter(([name]) => name.length > 0),
+    );
+
+  const syncIngredientsFromText = (value = ingredientsText) => {
+    const nextIngredients = parseIngredients(value);
+    setEditing((current) => ({
+      ...current,
+      ingredients: nextIngredients,
+    }));
+    return nextIngredients;
+  };
+
+  const openNewEditor = () => {
+    setEditing(newBlank());
+    setIngredientsText("");
+    setExtraIngredientRows([]);
+    setEditorOpen(true);
+  };
+
+  const openEditEditor = (product: Product) => {
+    setEditing(product);
+    setIngredientsText((product.ingredients ?? []).join(", "));
+    setExtraIngredientRows(rowsFromExtraPrices(product.extra_ingredient_prices));
+    setEditorOpen(true);
+  };
+
+  const addExtraIngredient = () => {
+    setExtraIngredientRows((current) => [
+      ...current,
+      { id: crypto.randomUUID(), name: "", price: 0 },
+    ]);
+  };
+
+  const updateExtraIngredient = (
+    rowId: string,
+    patch: Partial<Pick<ExtraIngredientRow, "name" | "price">>,
+  ) => {
+    setExtraIngredientRows((current) =>
+      current.map((row) => (row.id === rowId ? { ...row, ...patch } : row)),
+    );
+  };
+
+  const removeExtraIngredient = (rowId: string) => {
+    setExtraIngredientRows((current) => current.filter((row) => row.id !== rowId));
+  };
 
   const syncBurgerStock = async () => {
     const response = await fetch("/api/admin/stock/sync-burgers", {
@@ -156,18 +223,14 @@ function ProductsPage() {
   };
 
   const save = async () => {
+    const nextIngredients = syncIngredientsFromText();
     const payload = {
       ...editing,
       price: Number(editing.price || 0),
       stock_quantity: Number(editing.stock_quantity || 0),
       low_stock_threshold: Number(editing.low_stock_threshold || 0),
-      ingredients: editing.ingredients ?? [],
-      extra_ingredient_prices: Object.fromEntries(
-        buildExtraIngredientOptions(
-          editing.ingredients ?? [],
-          editing.extra_ingredient_prices ?? {},
-        ).map((extra) => [extra.name, extra.price]),
-      ),
+      ingredients: nextIngredients,
+      extra_ingredient_prices: extraPricesFromRows(),
     };
     const request = (nextPayload: Record<string, unknown>) =>
       editing.id
@@ -187,6 +250,8 @@ function ProductsPage() {
         : "Producto guardado.",
     );
     setEditing(newBlank());
+    setIngredientsText("");
+    setExtraIngredientRows([]);
     setEditorOpen(false);
     load();
   };
@@ -241,12 +306,7 @@ function ProductsPage() {
                 {importingMenu ? "Cargando..." : "Cargar menu real"}
               </AdminButton>
             )}
-            <AdminButton
-              onClick={() => {
-                setEditing(newBlank());
-                setEditorOpen(true);
-              }}
-            >
+            <AdminButton onClick={openNewEditor}>
               <Plus className="h-4 w-4" /> Nuevo producto
             </AdminButton>
           </div>
@@ -286,13 +346,7 @@ function ProductsPage() {
                 </p>
               )}
             <div className="mt-4 flex gap-2">
-              <AdminButton
-                variant="ghost"
-                onClick={() => {
-                  setEditing(product);
-                  setEditorOpen(true);
-                }}
-              >
+              <AdminButton variant="ghost" onClick={() => openEditEditor(product)}>
                 <Edit3 className="h-4 w-4" /> Editar
               </AdminButton>
               <AdminButton variant="danger" onClick={() => remove(product.id)}>
@@ -402,52 +456,58 @@ function ProductsPage() {
               </div>
               <AdminField label="Ingredientes base, separados por coma">
                 <AdminTextarea
-                  value={(editing.ingredients || []).join(", ")}
+                  value={ingredientsText}
                   onChange={(e) => {
-                    const nextIngredients = e.target.value
-                      .split(",")
-                      .map((item) => item.trim())
-                      .filter(Boolean);
-                    setEditing({
-                      ...editing,
-                      ingredients: nextIngredients,
-                      extra_ingredient_prices: Object.fromEntries(
-                        buildExtraIngredientOptions(nextIngredients, editingExtraPrices).map(
-                          (extra) => [extra.name, extra.price],
-                        ),
-                      ),
-                    });
+                    setIngredientsText(e.target.value);
                   }}
+                  onBlur={() => syncIngredientsFromText()}
                 />
               </AdminField>
-              {editingExtraOptions.length > 0 && (
-                <AdminField label="Precio por ingrediente extra">
-                  <div className="grid gap-2 rounded-md border border-white/10 bg-black/20 p-3">
-                    {editingExtraOptions.map((ingredient) => (
-                      <div
-                        key={ingredient.name}
-                        className="grid grid-cols-[minmax(0,1fr)_120px] items-center gap-2"
-                      >
-                        <span className="truncate text-sm text-zinc-300">{ingredient.name}</span>
-                        <AdminInput
-                          type="number"
-                          min={0}
-                          value={editingExtraPrices[ingredient.name] ?? ingredient.price}
-                          onChange={(event) =>
-                            setEditing({
-                              ...editing,
-                              extra_ingredient_prices: {
-                                ...editingExtraPrices,
-                                [ingredient.name]: Number(event.target.value),
-                              },
-                            })
-                          }
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </AdminField>
-              )}
+              <AdminField label="Ingredientes extra para agregar">
+                <div className="grid gap-2 rounded-md border border-white/10 bg-black/20 p-3">
+                  {extraIngredientRows.length > 0 && (
+                    <div className="grid gap-2">
+                      {extraIngredientRows.map((ingredient) => (
+                        <div
+                          key={ingredient.id}
+                          className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_120px_40px]"
+                        >
+                          <AdminInput
+                            value={ingredient.name}
+                            onChange={(event) =>
+                              updateExtraIngredient(ingredient.id, { name: event.target.value })
+                            }
+                            placeholder="Ej: Huevo frito"
+                          />
+                          <AdminInput
+                            type="number"
+                            min={0}
+                            value={ingredient.price || ""}
+                            onChange={(event) =>
+                              updateExtraIngredient(ingredient.id, {
+                                price: Number(event.target.value),
+                              })
+                            }
+                            placeholder="Precio"
+                          />
+                          <AdminButton
+                            type="button"
+                            variant="danger"
+                            className="px-0"
+                            onClick={() => removeExtraIngredient(ingredient.id)}
+                            aria-label={`Eliminar ${ingredient.name || "extra"}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </AdminButton>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <AdminButton type="button" variant="ghost" onClick={addExtraIngredient}>
+                    <Plus className="h-4 w-4" /> Agregar extra
+                  </AdminButton>
+                </div>
+              </AdminField>
               <label className="flex items-center gap-2 text-sm text-zinc-300">
                 <input
                   type="checkbox"
