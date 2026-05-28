@@ -106,6 +106,17 @@ run_supabase() {
   fi
 }
 
+ensure_preview_server() {
+  if [ -f "scripts/ensure-preview-server.mjs" ]; then
+    node scripts/ensure-preview-server.mjs
+  else
+    mkdir -p dist/server
+    printf "export { default } from './index.js'\n" > dist/server/server.js
+  fi
+
+  [ -f "dist/server/server.js" ] || fail "No se pudo crear dist/server/server.js."
+}
+
 push_supabase_migrations() {
   [ "$RUN_SUPABASE_PUSH" = "1" ] || {
     log "Saltando Supabase por RUN_SUPABASE_PUSH=0."
@@ -219,6 +230,11 @@ main() {
   update_repo
   check_env_file
 
+  if [ -f "dist/server/index.js" ]; then
+    log "Reparando wrapper preview existente antes del deploy."
+    ensure_preview_server
+  fi
+
   log "Instalando dependencias."
   if [ -f "package-lock.json" ]; then
     npm ci
@@ -233,8 +249,7 @@ main() {
   npm run build
 
   log "Verificando wrapper dist/server/server.js para preview."
-  node scripts/ensure-preview-server.mjs
-  [ -f "dist/server/server.js" ] || fail "No se pudo crear dist/server/server.js."
+  ensure_preview_server
 
   restart_pm2
   healthcheck

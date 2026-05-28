@@ -7,7 +7,7 @@
     "dev": "vite dev",
     "build": "vite build && node scripts/ensure-preview-server.mjs",
     "build:dev": "vite build --mode development",
-    "preview": "node scripts/ensure-preview-server.mjs && vite preview",
+    "preview": "node -e \"require('fs').mkdirSync('dist/server',{recursive:true});require('fs').writeFileSync('dist/server/server.js',\\\"export { default } from './index.js'\\\\n\\\")\" && vite preview",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
