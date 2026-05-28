@@ -5,9 +5,12 @@ APP_DIR="${APP_DIR:-/var/www/hotspot}"
 APP_NAME="${APP_NAME:-hotspot}"
 APP_HOST="${APP_HOST:-127.0.0.1}"
 APP_PORT="${APP_PORT:-3003}"
-RUN_GIT_PULL="${RUN_GIT_PULL:-0}"
-RUN_SUPABASE_PUSH="${RUN_SUPABASE_PUSH:-0}"
+APP_REPO="${APP_REPO:-https://github.com/MatiasCiafardini/Hotspot.git}"
+APP_BRANCH="${APP_BRANCH:-main}"
+RUN_GIT_PULL="${RUN_GIT_PULL:-1}"
+RUN_SUPABASE_PUSH="${RUN_SUPABASE_PUSH:-1}"
 RUN_PRISMA_MIGRATE="${RUN_PRISMA_MIGRATE:-1}"
+ALLOW_DIRTY_DEPLOY="${ALLOW_DIRTY_DEPLOY:-0}"
 
 log() {
   printf "\n[%s] %s\n" "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
@@ -20,6 +23,42 @@ fail() {
 
 require_command() {
   command -v "$1" >/dev/null 2>&1 || fail "Falta instalar '$1'."
+}
+
+prepare_app_dir() {
+  if [ -d "$APP_DIR/.git" ]; then
+    return
+  fi
+
+  [ "$RUN_GIT_PULL" = "1" ] || return
+
+  require_command git
+
+  log "Clonando $APP_REPO#$APP_BRANCH en $APP_DIR."
+  mkdir -p "$(dirname "$APP_DIR")"
+  local env_backup=""
+  local backup_dir=""
+  if [ -f "$APP_DIR/.env" ]; then
+    env_backup="$(mktemp)"
+    cp "$APP_DIR/.env" "$env_backup"
+  fi
+
+  if [ -d "$APP_DIR" ]; then
+    backup_dir="${APP_DIR}_backup_$(date +%Y%m%d_%H%M%S)"
+    log "$APP_DIR existe sin .git; moviendo backup a $backup_dir."
+    mv "$APP_DIR" "$backup_dir"
+  fi
+
+  if [ -d "$APP_DIR" ]; then
+    rm -rf "$APP_DIR"
+  fi
+
+  git clone --branch "$APP_BRANCH" --single-branch "$APP_REPO" "$APP_DIR"
+
+  if [ -n "$env_backup" ]; then
+    cp "$env_backup" "$APP_DIR/.env"
+    rm -f "$env_backup"
+  fi
 }
 
 load_nvm() {
@@ -126,6 +165,32 @@ restart_pm2() {
   pm2 save
 }
 
+update_repo() {
+  [ "$RUN_GIT_PULL" = "1" ] || {
+    log "Saltando GitHub por RUN_GIT_PULL=0."
+    return
+  }
+
+  require_command git
+  [ -d ".git" ] || fail "$APP_DIR no es un repo git. No puedo actualizar desde GitHub."
+
+  local dirty
+  dirty="$(git status --porcelain)"
+  if [ -n "$dirty" ] && [ "$ALLOW_DIRTY_DEPLOY" != "1" ]; then
+    printf "%s\n" "$dirty" >&2
+    fail "El repo tiene cambios locales. Commit/stash o usa ALLOW_DIRTY_DEPLOY=1 si querés pisarlos."
+  fi
+
+  if ! git remote get-url origin >/dev/null 2>&1; then
+    git remote add origin "$APP_REPO"
+  fi
+
+  log "Actualizando $APP_BRANCH desde GitHub."
+  git fetch --prune origin "$APP_BRANCH"
+  git checkout -B "$APP_BRANCH" "origin/$APP_BRANCH"
+  git reset --hard "origin/$APP_BRANCH"
+}
+
 healthcheck() {
   log "Verificando http://$APP_HOST:$APP_PORT."
   local attempt
@@ -140,6 +205,7 @@ healthcheck() {
 }
 
 main() {
+  prepare_app_dir
   cd "$APP_DIR" || fail "No pude entrar a $APP_DIR."
 
   load_nvm
@@ -150,13 +216,8 @@ main() {
   log "Node: $(node -v)"
   log "NPM: $(npm -v)"
 
+  update_repo
   check_env_file
-
-  if [ "$RUN_GIT_PULL" = "1" ] && [ -d ".git" ]; then
-    require_command git
-    log "Actualizando repo con git pull --ff-only."
-    git pull --ff-only
-  fi
 
   log "Instalando dependencias."
   if [ -f "package-lock.json" ]; then
@@ -171,11 +232,9 @@ main() {
   log "Compilando app."
   npm run build
 
-  log "Creando wrapper dist/server/server.js para preview."
-  mkdir -p dist/server
-  cat > dist/server/server.js <<'EOF'
-export { default } from './index.js'
-EOF
+  log "Verificando wrapper dist/server/server.js para preview."
+  node scripts/ensure-preview-server.mjs
+  [ -f "dist/server/server.js" ] || fail "No se pudo crear dist/server/server.js."
 
   restart_pm2
   healthcheck

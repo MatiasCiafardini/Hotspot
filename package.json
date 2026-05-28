@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "vite build && node scripts/ensure-preview-server.mjs",
     "build:dev": "vite build --mode development",
-    "preview": "vite preview",
+    "preview": "node scripts/ensure-preview-server.mjs && vite preview",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
