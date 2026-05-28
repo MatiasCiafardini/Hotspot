@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS public.products (
   price NUMERIC(10,2) NOT NULL CHECK (price >= 0),
   category TEXT NOT NULL,
   image_url TEXT,
+  modal_image_url TEXT,
   badge TEXT,
   promotion TEXT,
   available BOOLEAN NOT NULL DEFAULT true,
@@ -116,6 +117,7 @@ ALTER TABLE public.orders
   ADD COLUMN IF NOT EXISTS delivery_time TIME;
 
 ALTER TABLE public.products
+  ADD COLUMN IF NOT EXISTS modal_image_url TEXT,
   ADD COLUMN IF NOT EXISTS extra_ingredient_prices JSONB NOT NULL DEFAULT '{}'::jsonb;
 
 ALTER TABLE public.orders

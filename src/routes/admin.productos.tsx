@@ -18,6 +18,7 @@ import {
   AdminTextarea,
 } from "@/components/admin/AdminBits";
 import { buildExtraIngredientOptions, formatMoney } from "@/lib/admin";
+import { createClientId } from "@/lib/utils";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/productos")({
@@ -33,6 +34,7 @@ const blank: Partial<Product> = {
   price: 0,
   category: "burgers",
   image_url: "",
+  modal_image_url: "",
   badge: "",
   available: true,
   promotion: "",
@@ -68,7 +70,9 @@ function ProductsPage() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [ingredientsText, setIngredientsText] = useState("");
   const [extraIngredientRows, setExtraIngredientRows] = useState<ExtraIngredientRow[]>([]);
-  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState<"image_url" | "modal_image_url" | null>(
+    null,
+  );
   const [importingMenu, setImportingMenu] = useState(false);
 
   const newBlank = (category = categories[0]?.key || "burgers") => ({ ...blank, category });
@@ -103,7 +107,7 @@ function ProductsPage() {
 
   const rowsFromExtraPrices = (prices: Record<string, number> | null | undefined) =>
     Object.entries(prices ?? {}).map(([name, price]) => ({
-      id: crypto.randomUUID(),
+      id: createClientId(),
       name,
       price: Number(price) || 0,
     }));
@@ -139,10 +143,7 @@ function ProductsPage() {
   };
 
   const addExtraIngredient = () => {
-    setExtraIngredientRows((current) => [
-      ...current,
-      { id: crypto.randomUUID(), name: "", price: 0 },
-    ]);
+    setExtraIngredientRows((current) => [...current, { id: createClientId(), name: "", price: 0 }]);
   };
 
   const updateExtraIngredient = (
@@ -236,10 +237,16 @@ function ProductsPage() {
       editing.id
         ? (supabase as any).from("products").update(nextPayload).eq("id", editing.id)
         : (supabase as any).from("products").insert(nextPayload);
-    let { error } = await request(payload);
+    let nextPayload: Record<string, unknown> = payload;
+    let { error } = await request(nextPayload);
+    if (error?.message?.includes("modal_image_url")) {
+      toast.error("Falta actualizar Supabase: agregá la columna modal_image_url en products.");
+      return;
+    }
     if (error?.message?.includes("extra_ingredient_prices")) {
-      const { extra_ingredient_prices: _extraIngredientPrices, ...fallbackPayload } = payload;
-      const retry = await request(fallbackPayload);
+      const { extra_ingredient_prices: _extraIngredientPrices, ...fallbackPayload } = nextPayload;
+      nextPayload = fallbackPayload;
+      const retry = await request(nextPayload);
       error = retry.error;
     }
     if (error) return toast.error("No se pudo guardar el producto.");
@@ -263,7 +270,7 @@ function ProductsPage() {
     load();
   };
 
-  const uploadImage = async (file: File | null) => {
+  const uploadImage = async (file: File | null, field: "image_url" | "modal_image_url") => {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       toast.error("El archivo tiene que ser una imagen.");
@@ -274,22 +281,22 @@ function ProductsPage() {
       return;
     }
 
-    setUploadingImage(true);
-    const path = `products/${Date.now()}-${crypto.randomUUID()}.${extensionFromFile(file)}`;
+    setUploadingImage(field);
+    const path = `products/${Date.now()}-${createClientId()}.${extensionFromFile(file)}`;
     const { error } = await supabase.storage.from(PRODUCT_IMAGES_BUCKET).upload(path, file, {
       cacheControl: "31536000",
       upsert: false,
     });
 
     if (error) {
-      setUploadingImage(false);
+      setUploadingImage(null);
       toast.error("No se pudo subir la imagen. Revisá que exista el bucket product-images.");
       return;
     }
 
     const { data } = supabase.storage.from(PRODUCT_IMAGES_BUCKET).getPublicUrl(path);
-    setEditing((current) => ({ ...current, image_url: data.publicUrl }));
-    setUploadingImage(false);
+    setEditing((current) => ({ ...current, [field]: data.publicUrl }));
+    setUploadingImage(null);
     toast.success("Imagen cargada.");
   };
 
@@ -412,7 +419,7 @@ function ProductsPage() {
                   </AdminSelect>
                 </AdminField>
               </div>
-              <AdminField label="Imagen">
+              <AdminField label="Imagen del menu">
                 <div className="grid gap-3">
                   {editing.image_url && (
                     <img
@@ -424,15 +431,44 @@ function ProductsPage() {
                   <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed border-orange-400/40 bg-black/30 p-4 text-center text-sm text-zinc-300 transition-colors hover:border-orange-300 hover:bg-orange-500/10">
                     <ImageUp className="h-6 w-6 text-orange-300" />
                     <span className="font-semibold">
-                      {uploadingImage ? "Subiendo imagen..." : "Seleccionar imagen"}
+                      {uploadingImage === "image_url" ? "Subiendo imagen..." : "Seleccionar imagen"}
                     </span>
                     <span className="text-xs text-zinc-500">JPG, PNG o WEBP hasta 5 MB</span>
                     <AdminInput
                       type="file"
                       accept="image/*"
-                      disabled={uploadingImage}
+                      disabled={Boolean(uploadingImage)}
                       className="sr-only"
-                      onChange={(e) => uploadImage(e.target.files?.[0] ?? null)}
+                      onChange={(e) => uploadImage(e.target.files?.[0] ?? null, "image_url")}
+                    />
+                  </label>
+                </div>
+              </AdminField>
+              <AdminField label="Imagen del popup (opcional)">
+                <div className="grid gap-3">
+                  {editing.modal_image_url && (
+                    <img
+                      src={resolveImage(editing.modal_image_url)}
+                      alt={editing.name || "Producto"}
+                      className="h-40 w-full rounded-md border border-white/10 object-cover"
+                    />
+                  )}
+                  <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed border-orange-400/40 bg-black/30 p-4 text-center text-sm text-zinc-300 transition-colors hover:border-orange-300 hover:bg-orange-500/10">
+                    <ImageUp className="h-6 w-6 text-orange-300" />
+                    <span className="font-semibold">
+                      {uploadingImage === "modal_image_url"
+                        ? "Subiendo imagen..."
+                        : "Seleccionar imagen"}
+                    </span>
+                    <span className="text-xs text-zinc-500">
+                      Si no cargas una, se usa la imagen del menu
+                    </span>
+                    <AdminInput
+                      type="file"
+                      accept="image/*"
+                      disabled={Boolean(uploadingImage)}
+                      className="sr-only"
+                      onChange={(e) => uploadImage(e.target.files?.[0] ?? null, "modal_image_url")}
                     />
                   </label>
                 </div>

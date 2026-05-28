@@ -111,6 +111,7 @@ export type Database = {
           extra_ingredient_prices: Json;
           id: string;
           image_url: string | null;
+          modal_image_url: string | null;
           name: string;
           price: number;
           sort_order: number;
@@ -125,6 +126,7 @@ export type Database = {
           extra_ingredient_prices?: Json;
           id?: string;
           image_url?: string | null;
+          modal_image_url?: string | null;
           name: string;
           price: number;
           sort_order?: number;
@@ -139,6 +141,7 @@ export type Database = {
           extra_ingredient_prices?: Json;
           id?: string;
           image_url?: string | null;
+          modal_image_url?: string | null;
           name?: string;
           price?: number;
           sort_order?: number;

@@ -67,9 +67,8 @@ function MenuPage() {
   );
   const isProductAvailableNow = useCallback(
     (product: Product) =>
-      settings.is_open &&
       categoryAvailableForShift(categoryMap.get(product.category), currentShift),
-    [categoryMap, currentShift, settings.is_open],
+    [categoryMap, currentShift],
   );
   const unavailableIngredientMap = useMemo(() => {
     const unavailable = new Set(
@@ -96,33 +95,22 @@ function MenuPage() {
         .filter((category) => categoryAvailableForShift(category, settings.current_menu_shift))
         .map((category) => category.key),
     );
-    const shiftProducts = settings.is_open
-      ? products.filter((product) => visibleCategories.has(product.category))
-      : [];
+    const shiftProducts = products.filter((product) => visibleCategories.has(product.category));
     const visible =
       active === "all" ? shiftProducts : shiftProducts.filter((p) => p.category === active);
     return [...visible].sort(
       (a, b) => Number(isProductAvailableNow(b)) - Number(isProductAvailableNow(a)),
     );
-  }, [
-    active,
-    categories,
-    isProductAvailableNow,
-    products,
-    settings.current_menu_shift,
-    settings.is_open,
-  ]);
+  }, [active, categories, isProductAvailableNow, products, settings.current_menu_shift]);
 
-  const visibleCategoryTabs = settings.is_open
-    ? categoryTabs.filter(
-        (category) =>
-          category.key === "all" ||
-          categoryAvailableForShift(
-            categories.find((item) => item.key === category.key),
-            settings.current_menu_shift,
-          ),
-      )
-    : [{ key: "all", label: "Todo" }];
+  const visibleCategoryTabs = categoryTabs.filter(
+    (category) =>
+      category.key === "all" ||
+      categoryAvailableForShift(
+        categories.find((item) => item.key === category.key),
+        settings.current_menu_shift,
+      ),
+  );
 
   return (
     <section className="mx-auto max-w-7xl px-4 pb-12 pt-10 md:px-6 md:pt-12">
@@ -138,7 +126,7 @@ function MenuPage() {
         <p className="mt-2 text-muted-foreground">
           {settings.is_open && settings.current_menu_shift
             ? `Turno activo: ${MENU_SHIFT_LABEL[currentShift]}`
-            : "El local esta cerrado. No hay turno activo para tomar pedidos."}
+            : `Carta visible: ${MENU_SHIFT_LABEL[currentShift]}. El local esta cerrado para pedidos.`}
         </p>
       </div>
 
@@ -172,7 +160,7 @@ function MenuPage() {
             <div className="sticker-lg col-span-full bg-card p-8 text-center">
               <h2 className="font-display text-4xl">Local cerrado</h2>
               <p className="mt-2 text-muted-foreground">
-                Cuando el admin abra una caja, vas a ver el menu disponible para ese turno.
+                Todavia no hay productos cargados para visualizar en este turno.
               </p>
             </div>
           )}

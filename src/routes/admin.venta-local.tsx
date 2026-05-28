@@ -41,7 +41,7 @@ import {
   type Product,
   type ProductCategory,
 } from "@/lib/products";
-import { cn } from "@/lib/utils";
+import { cn, createClientId } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/venta-local")({
   head: () => ({
@@ -220,7 +220,7 @@ function LocalSalePage() {
     setCart((current) => [
       ...current,
       {
-        id: crypto.randomUUID(),
+        id: createClientId(),
         product: customizing,
         quantity: customQuantity,
         removedIngredients: customRemoved,

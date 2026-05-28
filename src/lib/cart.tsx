@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createClientId } from "@/lib/utils";
 
 export type CartItem = {
   id: string;
@@ -48,7 +49,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const saved = JSON.parse(rawCart) as Partial<CartItem>[];
       setItems(
         saved.map((item) => ({
-          id: item.id || crypto.randomUUID(),
+          id: item.id || createClientId(),
           product_id: item.product_id || item.id || "",
           name: item.name || "",
           price: Number(item.price || 0),

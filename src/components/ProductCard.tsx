@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Minus, Plus, SlidersHorizontal } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useCart } from "@/lib/cart";
-import { resolveImage, type Product } from "@/lib/products";
+import { productMenuImage, productPopupImage, type Product } from "@/lib/products";
 import {
   extraIngredientPrice,
   formatMoney,
@@ -105,7 +105,7 @@ export function ProductCard({
         >
           <div className="relative aspect-square shrink-0 overflow-hidden border-b border-ink bg-cream">
             <motion.img
-              src={resolveImage(product.image_url)}
+              src={productMenuImage(product)}
               alt={product.name}
               loading="lazy"
               width={1024}
@@ -239,7 +239,7 @@ function ProductViewDialog({
         <div className="grid md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
           <div className="relative min-h-[280px] border-b border-ink bg-cream md:border-b-0 md:border-r">
             <img
-              src={resolveImage(product.image_url)}
+              src={productPopupImage(product)}
               alt={product.name}
               className="h-full min-h-[280px] w-full object-cover"
             />

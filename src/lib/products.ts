@@ -25,6 +25,15 @@ export function resolveImage(url: string | null | undefined): string {
   return map[url] ?? url;
 }
 
+export function productMenuImage(product: Pick<Product, "image_url">) {
+  return resolveImage(product.image_url);
+}
+
+export function productPopupImage(product: Pick<Product, "image_url" | "modal_image_url">) {
+  const popupImage = product.modal_image_url?.trim();
+  return resolveImage(popupImage || product.image_url);
+}
+
 export type ProductCategory = {
   id?: string;
   key: string;
@@ -55,6 +64,7 @@ export type Product = {
   price: number;
   category: string;
   image_url: string | null;
+  modal_image_url?: string | null;
   badge: string | null;
   available: boolean;
   sort_order: number;
