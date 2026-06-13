@@ -2,7 +2,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, Minus, Trash2, ShoppingBag, SlidersHorizontal } from "lucide-react";
 import { useEffect, useState } from "react";
 import { type CartItem, useCart } from "@/lib/cart";
-import { resolveImage } from "@/lib/products";
+import { isDefaultProductImage, resolveImage } from "@/lib/products";
+import { cn } from "@/lib/utils";
 import { SmashButton } from "./SmashButton";
 import { TransitionLink } from "@/components/RouteTransitionProvider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -84,7 +85,12 @@ export function CartDrawer() {
                           <img
                             src={resolveImage(item.image_url)}
                             alt={item.name}
-                            className="h-16 w-16 border border-ink object-cover"
+                            className={cn(
+                              "h-16 w-16 border border-ink",
+                              isDefaultProductImage(item.image_url)
+                                ? "bg-black p-2 object-contain"
+                                : "object-cover",
+                            )}
                           />
                           <div className="flex-1 min-w-0">
                             <p className="font-display uppercase truncate">{item.name}</p>

@@ -7,6 +7,7 @@ import fries from "@/assets/side-fries.jpg";
 import rings from "@/assets/side-rings.jpg";
 import shake from "@/assets/drink-shake.jpg";
 import cola from "@/assets/drink-cola.jpg";
+import logoProductFallback from "@/assets/logo_product_fallback.png";
 import { REAL_MENU_CATEGORIES } from "@/lib/real-menu";
 
 const map: Record<string, string> = {
@@ -18,11 +19,26 @@ const map: Record<string, string> = {
   "/src/assets/side-rings.jpg": rings,
   "/src/assets/drink-shake.jpg": shake,
   "/src/assets/drink-cola.jpg": cola,
+  "/src/assets/logo_hotspot.png": logoProductFallback,
+  "/src/assets/logo.png": logoProductFallback,
+  "/src/assets/logo_product_fallback.png": logoProductFallback,
 };
 
+export const DEFAULT_PRODUCT_IMAGE_URL = "/src/assets/logo_product_fallback.png";
+
 export function resolveImage(url: string | null | undefined): string {
-  if (!url) return classic;
+  if (!url) return logoProductFallback;
   return map[url] ?? url;
+}
+
+export function isDefaultProductImage(url: string | null | undefined) {
+  const cleanUrl = url?.trim();
+  return (
+    !cleanUrl ||
+    cleanUrl === "/src/assets/logo_hotspot.png" ||
+    cleanUrl === "/src/assets/logo.png" ||
+    cleanUrl === DEFAULT_PRODUCT_IMAGE_URL
+  );
 }
 
 export function productMenuImage(product: Pick<Product, "image_url">) {

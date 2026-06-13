@@ -44,6 +44,7 @@ import { Route as ApiStoreAuthGoogleRouteImport } from './routes/api.store.auth.
 import { Route as ApiStoreAuthForgotPasswordRouteImport } from './routes/api.store.auth.forgot-password'
 import { Route as ApiAdminStockSyncBurgersRouteImport } from './routes/api.admin.stock.sync-burgers'
 import { Route as ApiAdminOrdersStatusRouteImport } from './routes/api.admin.orders.status'
+import { Route as ApiAdminOrdersEditRouteImport } from './routes/api.admin.orders.edit'
 
 const SobreRoute = SobreRouteImport.update({
   id: '/sobre',
@@ -223,6 +224,11 @@ const ApiAdminOrdersStatusRoute = ApiAdminOrdersStatusRouteImport.update({
   path: '/api/admin/orders/status',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminOrdersEditRoute = ApiAdminOrdersEditRouteImport.update({
+  id: '/api/admin/orders/edit',
+  path: '/api/admin/orders/edit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -249,6 +255,7 @@ export interface FileRoutesByFullPath {
   '/api/admin/local-sale': typeof ApiAdminLocalSaleRoute
   '/api/store/menu': typeof ApiStoreMenuRoute
   '/api/store/orders': typeof ApiStoreOrdersRoute
+  '/api/admin/orders/edit': typeof ApiAdminOrdersEditRoute
   '/api/admin/orders/status': typeof ApiAdminOrdersStatusRoute
   '/api/admin/stock/sync-burgers': typeof ApiAdminStockSyncBurgersRoute
   '/api/store/auth/forgot-password': typeof ApiStoreAuthForgotPasswordRoute
@@ -286,6 +293,7 @@ export interface FileRoutesByTo {
   '/api/admin/local-sale': typeof ApiAdminLocalSaleRoute
   '/api/store/menu': typeof ApiStoreMenuRoute
   '/api/store/orders': typeof ApiStoreOrdersRoute
+  '/api/admin/orders/edit': typeof ApiAdminOrdersEditRoute
   '/api/admin/orders/status': typeof ApiAdminOrdersStatusRoute
   '/api/admin/stock/sync-burgers': typeof ApiAdminStockSyncBurgersRoute
   '/api/store/auth/forgot-password': typeof ApiStoreAuthForgotPasswordRoute
@@ -324,6 +332,7 @@ export interface FileRoutesById {
   '/api/admin/local-sale': typeof ApiAdminLocalSaleRoute
   '/api/store/menu': typeof ApiStoreMenuRoute
   '/api/store/orders': typeof ApiStoreOrdersRoute
+  '/api/admin/orders/edit': typeof ApiAdminOrdersEditRoute
   '/api/admin/orders/status': typeof ApiAdminOrdersStatusRoute
   '/api/admin/stock/sync-burgers': typeof ApiAdminStockSyncBurgersRoute
   '/api/store/auth/forgot-password': typeof ApiStoreAuthForgotPasswordRoute
@@ -363,6 +372,7 @@ export interface FileRouteTypes {
     | '/api/admin/local-sale'
     | '/api/store/menu'
     | '/api/store/orders'
+    | '/api/admin/orders/edit'
     | '/api/admin/orders/status'
     | '/api/admin/stock/sync-burgers'
     | '/api/store/auth/forgot-password'
@@ -400,6 +410,7 @@ export interface FileRouteTypes {
     | '/api/admin/local-sale'
     | '/api/store/menu'
     | '/api/store/orders'
+    | '/api/admin/orders/edit'
     | '/api/admin/orders/status'
     | '/api/admin/stock/sync-burgers'
     | '/api/store/auth/forgot-password'
@@ -437,6 +448,7 @@ export interface FileRouteTypes {
     | '/api/admin/local-sale'
     | '/api/store/menu'
     | '/api/store/orders'
+    | '/api/admin/orders/edit'
     | '/api/admin/orders/status'
     | '/api/admin/stock/sync-burgers'
     | '/api/store/auth/forgot-password'
@@ -468,6 +480,7 @@ export interface RootRouteChildren {
   ApiAdminLocalSaleRoute: typeof ApiAdminLocalSaleRoute
   ApiStoreMenuRoute: typeof ApiStoreMenuRoute
   ApiStoreOrdersRoute: typeof ApiStoreOrdersRoute
+  ApiAdminOrdersEditRoute: typeof ApiAdminOrdersEditRoute
   ApiAdminOrdersStatusRoute: typeof ApiAdminOrdersStatusRoute
   ApiAdminStockSyncBurgersRoute: typeof ApiAdminStockSyncBurgersRoute
   ApiStoreAuthForgotPasswordRoute: typeof ApiStoreAuthForgotPasswordRoute
@@ -728,6 +741,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminOrdersStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/orders/edit': {
+      id: '/api/admin/orders/edit'
+      path: '/api/admin/orders/edit'
+      fullPath: '/api/admin/orders/edit'
+      preLoaderRoute: typeof ApiAdminOrdersEditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -771,6 +791,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminLocalSaleRoute: ApiAdminLocalSaleRoute,
   ApiStoreMenuRoute: ApiStoreMenuRoute,
   ApiStoreOrdersRoute: ApiStoreOrdersRoute,
+  ApiAdminOrdersEditRoute: ApiAdminOrdersEditRoute,
   ApiAdminOrdersStatusRoute: ApiAdminOrdersStatusRoute,
   ApiAdminStockSyncBurgersRoute: ApiAdminStockSyncBurgersRoute,
   ApiStoreAuthForgotPasswordRoute: ApiStoreAuthForgotPasswordRoute,

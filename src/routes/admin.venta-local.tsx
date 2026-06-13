@@ -4,7 +4,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Banknote,
-  Clock,
   Minus,
   Plus,
   ReceiptText,
@@ -93,7 +92,7 @@ function LocalSalePage() {
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("pickup");
   const [customerAddress, setCustomerAddress] = useState("");
   const [deliveryFee, setDeliveryFee] = useState(DEFAULT_SETTINGS.delivery_fee);
-  const [deliveryTime, setDeliveryTime] = useState("");
+  const [deliveryTime, setDeliveryTime] = useState(() => currentTimeValue());
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("efectivo");
   const [paymentCashAmount, setPaymentCashAmount] = useState(0);
   const [paymentTransferAmount, setPaymentTransferAmount] = useState(0);
@@ -255,7 +254,7 @@ function LocalSalePage() {
     setDeliveryMethod("pickup");
     setCustomerAddress("");
     setDeliveryFee(Number(settings.delivery_fee) || 0);
-    setDeliveryTime("");
+    setDeliveryTime(currentTimeValue());
     setPaymentMethod("efectivo");
     setPaymentCashAmount(0);
     setPaymentTransferAmount(0);
@@ -333,7 +332,7 @@ function LocalSalePage() {
       <AdminPageHeader
         eyebrow="Caja"
         title="Venta local"
-        description="Carga por pasos: primero elegis y personalizas el menu, despues cerras la comanda."
+        description="Arma la comanda, define entrega, pago y total."
       />
 
       <div className="mb-5 grid gap-2 sm:grid-cols-2">
@@ -1049,7 +1048,7 @@ function CheckoutStep({
 
         <div className="mt-5 space-y-2 border-t border-white/10 pt-4 text-sm">
           <div className="flex items-center justify-between text-zinc-400">
-            <span>Subtotal</span>
+            <span>Items</span>
             <span>{formatMoney(subtotal)}</span>
           </div>
           <div className="flex items-center justify-between text-zinc-400">
@@ -1087,66 +1086,20 @@ function AdminTimePicker({
   value: string;
   onChange: (value: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const [hour = "20", minute = "00"] = value ? value.split(":") : ["20", "00"];
-  const hours = Array.from({ length: 24 }, (_, index) => String(index).padStart(2, "0"));
-  const minutes = Array.from({ length: 12 }, (_, index) => String(index * 5).padStart(2, "0"));
-
   return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((current) => !current)}
-        className="flex min-h-12 w-full items-center gap-3 rounded-md border border-white/10 bg-black/40 px-3 py-2 text-left font-display text-3xl text-white outline-none transition-colors hover:border-orange-400 focus:border-orange-400"
-      >
-        <Clock className="h-5 w-5 text-orange-300" />
-        {value || "Elegir hora"}
-      </button>
-      {open && (
-        <div className="absolute left-0 right-0 z-30 mt-2 rounded-md border border-orange-400/40 bg-zinc-950 p-3 shadow-2xl">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="max-h-52 overflow-y-auto pr-1">
-              {hours.map((option) => (
-                <button
-                  type="button"
-                  key={option}
-                  onClick={() => onChange(`${option}:${minute}`)}
-                  className={cn(
-                    "mb-1 min-h-9 w-full rounded-md px-3 text-center font-mono text-sm transition-colors",
-                    option === hour
-                      ? "bg-orange-500 text-black"
-                      : "bg-zinc-900 text-zinc-200 hover:bg-zinc-800",
-                  )}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-            <div className="max-h-52 overflow-y-auto pr-1">
-              {minutes.map((option) => (
-                <button
-                  type="button"
-                  key={option}
-                  onClick={() => {
-                    onChange(`${hour}:${option}`);
-                    setOpen(false);
-                  }}
-                  className={cn(
-                    "mb-1 min-h-9 w-full rounded-md px-3 text-center font-mono text-sm transition-colors",
-                    option === minute
-                      ? "bg-orange-500 text-black"
-                      : "bg-zinc-900 text-zinc-200 hover:bg-zinc-800",
-                  )}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+    <AdminInput
+      type="time"
+      step={60}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      className="font-mono text-lg"
+    />
   );
+}
+
+function currentTimeValue() {
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 }
 
 function PaymentMethodPicker({

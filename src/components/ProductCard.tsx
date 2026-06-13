@@ -2,7 +2,12 @@ import { motion } from "framer-motion";
 import { Minus, Plus, SlidersHorizontal } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useCart } from "@/lib/cart";
-import { productMenuImage, productPopupImage, type Product } from "@/lib/products";
+import {
+  isDefaultProductImage,
+  productMenuImage,
+  productPopupImage,
+  type Product,
+} from "@/lib/products";
 import {
   extraIngredientPrice,
   formatMoney,
@@ -44,6 +49,7 @@ export function ProductCard({
   const ingredients = useMemo(() => productIngredients(product), [product]);
   const extraIngredients = useMemo(() => productExtraIngredients(product), [product]);
   const disabled = Boolean(disabledReason);
+  const usesDefaultImage = isDefaultProductImage(product.image_url);
   const unavailableSet = useMemo(
     () => new Set(unavailableIngredients.map((ingredient) => ingredient.trim().toLowerCase())),
     [unavailableIngredients],
@@ -110,8 +116,12 @@ export function ProductCard({
               loading="lazy"
               width={1024}
               height={1024}
-              className="h-full w-full object-cover"
-              whileHover={{ scale: 1.08 }}
+              className={
+                usesDefaultImage
+                  ? "h-full w-full bg-black p-10 object-contain"
+                  : "h-full w-full object-cover"
+              }
+              whileHover={{ scale: usesDefaultImage ? 1.03 : 1.08 }}
               transition={{ type: "spring", stiffness: 200, damping: 18 }}
             />
             <div className="absolute inset-0 halftone opacity-0 transition-opacity group-hover:opacity-100" />
@@ -232,6 +242,7 @@ function ProductViewDialog({
   const unitPrice =
     Number(product.price) +
     added.reduce((sum, ingredient) => sum + extraIngredientPrice(product, ingredient), 0);
+  const usesDefaultImage = isDefaultProductImage(product.modal_image_url || product.image_url);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -241,7 +252,11 @@ function ProductViewDialog({
             <img
               src={productPopupImage(product)}
               alt={product.name}
-              className="h-full min-h-[280px] w-full object-cover"
+              className={
+                usesDefaultImage
+                  ? "h-full min-h-[280px] w-full bg-black p-10 object-contain"
+                  : "h-full min-h-[280px] w-full object-cover"
+              }
             />
             {product.badge && (
               <div className="absolute left-4 top-4">

@@ -3,7 +3,9 @@ import { useEffect, useState } from "react";
 import { Edit3, ImageUp, Plus, Save, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  DEFAULT_PRODUCT_IMAGE_URL,
   DEFAULT_CATEGORIES,
+  isDefaultProductImage,
   resolveImage,
   type Product,
   type ProductCategory,
@@ -33,7 +35,7 @@ const blank: Partial<Product> = {
   description: "",
   price: 0,
   category: "burgers",
-  image_url: "",
+  image_url: DEFAULT_PRODUCT_IMAGE_URL,
   modal_image_url: "",
   badge: "",
   available: true,
@@ -46,6 +48,8 @@ const blank: Partial<Product> = {
 
 const PRODUCT_IMAGES_BUCKET = "product-images";
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const OPTIMIZED_IMAGE_MAX_SIZE = 1400;
+const OPTIMIZED_IMAGE_QUALITY = 0.82;
 
 type ExtraIngredientRow = {
   id: string;
@@ -53,14 +57,46 @@ type ExtraIngredientRow = {
   price: number;
 };
 
-function extensionFromFile(file: File) {
-  return (
-    file.name
-      .split(".")
-      .pop()
-      ?.toLowerCase()
-      .replace(/[^a-z0-9]/g, "") || "jpg"
-  );
+function loadImage(file: File) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    const url = URL.createObjectURL(file);
+    image.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("No se pudo leer la imagen."));
+    };
+    image.src = url;
+  });
+}
+
+async function optimizeImage(file: File) {
+  const image = await loadImage(file);
+  const scale = Math.min(1, OPTIMIZED_IMAGE_MAX_SIZE / Math.max(image.width, image.height));
+  const width = Math.max(1, Math.round(image.width * scale));
+  const height = Math.max(1, Math.round(image.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("No se pudo preparar la imagen.");
+  context.drawImage(image, 0, 0, width, height);
+
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, "image/webp", OPTIMIZED_IMAGE_QUALITY);
+  });
+  if (!blob) throw new Error("No se pudo optimizar la imagen.");
+
+  return {
+    blob,
+    extension: "webp",
+    contentType: "image/webp",
+    originalSize: file.size,
+    optimizedSize: blob.size,
+  };
 }
 
 function ProductsPage() {
@@ -228,6 +264,8 @@ function ProductsPage() {
     const payload = {
       ...editing,
       price: Number(editing.price || 0),
+      image_url: editing.image_url?.trim() || DEFAULT_PRODUCT_IMAGE_URL,
+      modal_image_url: editing.modal_image_url?.trim() || null,
       stock_quantity: Number(editing.stock_quantity || 0),
       low_stock_threshold: Number(editing.low_stock_threshold || 0),
       ingredients: nextIngredients,
@@ -282,11 +320,23 @@ function ProductsPage() {
     }
 
     setUploadingImage(field);
-    const path = `products/${Date.now()}-${createClientId()}.${extensionFromFile(file)}`;
-    const { error } = await supabase.storage.from(PRODUCT_IMAGES_BUCKET).upload(path, file, {
-      cacheControl: "31536000",
-      upsert: false,
-    });
+    let optimized: Awaited<ReturnType<typeof optimizeImage>>;
+    try {
+      optimized = await optimizeImage(file);
+    } catch (error) {
+      setUploadingImage(null);
+      toast.error(error instanceof Error ? error.message : "No se pudo optimizar la imagen.");
+      return;
+    }
+
+    const path = `products/${Date.now()}-${createClientId()}.${optimized.extension}`;
+    const { error } = await supabase.storage
+      .from(PRODUCT_IMAGES_BUCKET)
+      .upload(path, optimized.blob, {
+        cacheControl: "31536000",
+        contentType: optimized.contentType,
+        upsert: false,
+      });
 
     if (error) {
       setUploadingImage(null);
@@ -297,7 +347,11 @@ function ProductsPage() {
     const { data } = supabase.storage.from(PRODUCT_IMAGES_BUCKET).getPublicUrl(path);
     setEditing((current) => ({ ...current, [field]: data.publicUrl }));
     setUploadingImage(null);
-    toast.success("Imagen cargada.");
+    const savedPercent = Math.max(
+      0,
+      Math.round(100 - (optimized.optimizedSize / optimized.originalSize) * 100),
+    );
+    toast.success(savedPercent > 0 ? `Imagen optimizada (-${savedPercent}%).` : "Imagen cargada.");
   };
 
   return (
@@ -305,7 +359,7 @@ function ProductsPage() {
       <AdminPageHeader
         eyebrow="Catalogo"
         title="Productos"
-        description="Alta, edicion, imagenes, promociones, stock e ingredientes base que luego ve el cliente al personalizar."
+        description="Menu, precios, imagenes, stock e ingredientes para venta y pedidos online."
         action={
           <div className="flex flex-wrap gap-2">
             {!hasRealMenu && (
@@ -425,7 +479,11 @@ function ProductsPage() {
                     <img
                       src={resolveImage(editing.image_url)}
                       alt={editing.name || "Producto"}
-                      className="h-40 w-full rounded-md border border-white/10 object-cover"
+                      className={
+                        isDefaultProductImage(editing.image_url)
+                          ? "h-40 w-full rounded-md border border-white/10 bg-black p-6 object-contain"
+                          : "h-40 w-full rounded-md border border-white/10 object-cover"
+                      }
                     />
                   )}
                   <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed border-orange-400/40 bg-black/30 p-4 text-center text-sm text-zinc-300 transition-colors hover:border-orange-300 hover:bg-orange-500/10">
@@ -450,7 +508,11 @@ function ProductsPage() {
                     <img
                       src={resolveImage(editing.modal_image_url)}
                       alt={editing.name || "Producto"}
-                      className="h-40 w-full rounded-md border border-white/10 object-cover"
+                      className={
+                        isDefaultProductImage(editing.modal_image_url)
+                          ? "h-40 w-full rounded-md border border-white/10 bg-black p-6 object-contain"
+                          : "h-40 w-full rounded-md border border-white/10 object-cover"
+                      }
                     />
                   )}
                   <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed border-orange-400/40 bg-black/30 p-4 text-center text-sm text-zinc-300 transition-colors hover:border-orange-300 hover:bg-orange-500/10">

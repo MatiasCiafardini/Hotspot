@@ -3,12 +3,13 @@ import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ChevronLeft, ChevronRight, Clock, Copy, PartyPopper } from "lucide-react";
 import { useCart } from "@/lib/cart";
-import { resolveImage } from "@/lib/products";
+import { isDefaultProductImage, resolveImage } from "@/lib/products";
 import { SmashButton } from "@/components/SmashButton";
 import { Sticker } from "@/components/Sticker";
 import { toast } from "sonner";
 import { GoogleLoginButton } from "@/components/GoogleLoginButton";
 import { useRouteTransition } from "@/components/RouteTransitionProvider";
+import { cn } from "@/lib/utils";
 import {
   DEFAULT_SETTINGS,
   formatIngredientList,
@@ -515,7 +516,12 @@ function CheckoutPage() {
                       <img
                         src={resolveImage(i.image_url)}
                         alt=""
-                        className="h-12 w-12 border border-ink object-cover"
+                        className={cn(
+                          "h-12 w-12 border border-ink",
+                          isDefaultProductImage(i.image_url)
+                            ? "bg-black p-1.5 object-contain"
+                            : "object-cover",
+                        )}
                       />
                       <div className="flex-1">
                         <p className="font-display uppercase">{i.name}</p>
