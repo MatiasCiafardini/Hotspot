@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Edit3, ImageUp, Plus, Save, Trash2, X } from "lucide-react";
+import { Edit3, ImageUp, LoaderCircle, Plus, Power, Save, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   DEFAULT_PRODUCT_IMAGE_URL,
@@ -110,6 +110,7 @@ function ProductsPage() {
     null,
   );
   const [importingMenu, setImportingMenu] = useState(false);
+  const [togglingProductId, setTogglingProductId] = useState<string | null>(null);
 
   const newBlank = (category = categories[0]?.key || "burgers") => ({ ...blank, category });
 
@@ -308,6 +309,34 @@ function ProductsPage() {
     load();
   };
 
+  const toggleAvailability = async (product: Product) => {
+    const nextAvailable = !product.available;
+    setTogglingProductId(product.id);
+    setProducts((current) =>
+      current.map((item) =>
+        item.id === product.id ? { ...item, available: nextAvailable } : item,
+      ),
+    );
+
+    const { error } = await (supabase as any)
+      .from("products")
+      .update({ available: nextAvailable })
+      .eq("id", product.id);
+
+    setTogglingProductId(null);
+    if (error) {
+      setProducts((current) =>
+        current.map((item) =>
+          item.id === product.id ? { ...item, available: product.available } : item,
+        ),
+      );
+      toast.error("No se pudo cambiar el estado del producto.");
+      return;
+    }
+
+    toast.success(nextAvailable ? "Producto activado." : "Producto desactivado.");
+  };
+
   const uploadImage = async (file: File | null, field: "image_url" | "modal_image_url") => {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
@@ -386,9 +415,25 @@ function ProductsPage() {
                 <h2 className="font-display text-3xl">{product.name}</h2>
                 <p className="mt-1 text-sm text-zinc-400">{product.description}</p>
               </div>
-              <span className={product.available ? "text-emerald-300" : "text-red-300"}>
+              <button
+                type="button"
+                onClick={() => toggleAvailability(product)}
+                disabled={togglingProductId === product.id}
+                aria-label={`${product.available ? "Desactivar" : "Activar"} ${product.name}`}
+                aria-pressed={product.available}
+                className={`inline-flex min-h-9 w-28 shrink-0 items-center justify-center gap-2 rounded-md border px-3 py-1.5 text-sm font-semibold transition-colors duration-200 disabled:cursor-wait ${
+                  product.available
+                    ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
+                    : "border-red-400/40 bg-red-500/10 text-red-300 hover:bg-red-500/20"
+                }`}
+              >
+                {togglingProductId === product.id ? (
+                  <LoaderCircle className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Power className="h-4 w-4" />
+                )}
                 {product.available ? "Activo" : "Pausado"}
-              </span>
+              </button>
             </div>
             <p className="mt-3 font-display text-3xl text-orange-300">
               {formatMoney(product.price)}

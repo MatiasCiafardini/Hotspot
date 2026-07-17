@@ -138,6 +138,7 @@ function OrdersPage() {
   const [expandedOrderIds, setExpandedOrderIds] = useState<Set<string>>(new Set());
   const [settings, setSettings] = useState<StoreSettings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
+  const handledDeepLinkRef = useRef<string | null>(null);
   const knownOrderIdsRef = useRef<Set<string>>(new Set());
   const hasLoadedRef = useRef(false);
 
@@ -154,7 +155,11 @@ function OrdersPage() {
     const nextOrders = getActiveOrders((data as AdminOrder[]) ?? []);
     const previousIds = knownOrderIdsRef.current;
 
-    if (options?.notifyNew && hasLoadedRef.current) {
+    if (
+      options?.notifyNew &&
+      hasLoadedRef.current &&
+      window.localStorage.getItem("hotspot-push-active") !== "true"
+    ) {
       const newOrders = nextOrders.filter(
         (order) => !previousIds.has(order.id) && ACTIONABLE_ORDER_STATUSES.includes(order.status),
       );
@@ -223,6 +228,16 @@ function OrdersPage() {
     };
   }, [load]);
 
+  useEffect(() => {
+    const orderId = new URLSearchParams(window.location.search).get("pedido");
+    if (!orderId || handledDeepLinkRef.current === orderId) return;
+    const order = orders.find((item) => item.id === orderId);
+    if (!order) return;
+    handledDeepLinkRef.current = orderId;
+    setExpandedOrderIds((current) => new Set(current).add(orderId));
+    setSelected(order);
+  }, [orders]);
+
   const pending = useMemo(
     () => orders.filter((order) => ACTIONABLE_ORDER_STATUSES.includes(order.status)),
     [orders],
@@ -238,7 +253,14 @@ function OrdersPage() {
       const data = await response.json().catch(() => null);
       const patch =
         data?.patch ??
-        (status === "confirmed" ? { status, payment_status: "approved" } : { status });
+        (status === "confirmed"
+          ? {
+              status,
+              payment_status: order.payment_method === "efectivo" ? "pending" : "approved",
+            }
+          : status === "delivered" && order.payment_method === "efectivo"
+            ? { status, payment_status: "approved" }
+            : { status });
       const error = response.ok
         ? null
         : (data?.error ?? (await readApiError(response, "No se pudo actualizar el pedido.")));
@@ -406,7 +428,10 @@ function OrdersPage() {
                     {canConfirmOrReject && (
                       <>
                         <AdminButton onClick={() => updateStatus(order, "confirmed")}>
-                          <Check className="h-4 w-4" /> Confirmar pago
+                          <Check className="h-4 w-4" />
+                          {order.payment_method === "efectivo"
+                            ? "Confirmar pedido"
+                            : "Confirmar pago"}
                         </AdminButton>
                         <AdminButton
                           variant="danger"

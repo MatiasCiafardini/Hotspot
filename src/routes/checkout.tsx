@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, ChevronLeft, ChevronRight, Clock, Copy, PartyPopper } from "lucide-react";
+import { Banknote, Check, ChevronLeft, ChevronRight, Clock, Copy, PartyPopper } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { isDefaultProductImage, resolveImage } from "@/lib/products";
 import { SmashButton } from "@/components/SmashButton";
@@ -39,19 +39,14 @@ async function createOrder(input: {
   customerAddress: string | null;
   deliveryTime: string | null;
   notes: string | null;
-  total: number;
+  paymentMethod: "efectivo" | "transferencia";
   items: CheckoutItem[];
 }) {
   const response = await fetch("/api/store/orders", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({
-      ...input,
-      paymentMethod: "transferencia",
-      paymentStatus: "pending",
-      status: "pending_payment",
-    }),
+    body: JSON.stringify(input),
   });
 
   if (!response.ok) {
@@ -63,6 +58,7 @@ async function createOrder(input: {
       throw new Error("No pudimos crear el pedido.");
     }
   }
+  return response.json() as Promise<{ order: { id: string; total: number } }>;
 }
 
 function CheckoutPage() {
@@ -73,6 +69,10 @@ function CheckoutPage() {
   const [done, setDone] = useState(false);
   const [settings, setSettings] = useState<StoreSettings>(DEFAULT_SETTINGS);
   const [transferSeconds, setTransferSeconds] = useState(300);
+  const [paymentMethod, setPaymentMethod] = useState<"efectivo" | "transferencia">("efectivo");
+  const [createdOrder, setCreatedOrder] = useState<{ id: string; total: number } | null>(null);
+  const [validationMessage, setValidationMessage] = useState<string | null>(null);
+  const validationTimerRef = useRef<number | null>(null);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [loginSubmitting, setLoginSubmitting] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -105,7 +105,11 @@ function CheckoutPage() {
     fetch("/api/store/menu", { credentials: "include" })
       .then((response) => (response.ok ? response.json() : null))
       .then((data: { settings?: StoreSettings } | null) => {
-        if (data?.settings) setSettings({ ...DEFAULT_SETTINGS, ...data.settings });
+        if (data?.settings) {
+          const nextSettings = { ...DEFAULT_SETTINGS, ...data.settings };
+          setSettings(nextSettings);
+          setPaymentMethod(nextSettings.accepts_cash ? "efectivo" : "transferencia");
+        }
       })
       .catch(() => {
         setSettings(DEFAULT_SETTINGS);
@@ -119,12 +123,19 @@ function CheckoutPage() {
   }, [form.method, midnightOnlyPickup]);
 
   useEffect(() => {
-    if (step !== 2 || done || submitting || transferSeconds <= 0) return;
+    if (
+      paymentMethod !== "transferencia" ||
+      step !== 2 ||
+      done ||
+      submitting ||
+      transferSeconds <= 0
+    )
+      return;
     const timer = window.setInterval(() => {
       setTransferSeconds((seconds) => Math.max(0, seconds - 1));
     }, 1000);
     return () => window.clearInterval(timer);
-  }, [done, step, submitting, transferSeconds]);
+  }, [done, paymentMethod, step, submitting, transferSeconds]);
 
   const transferTime = useMemo(() => {
     const minutes = Math.floor(transferSeconds / 60);
@@ -132,12 +143,42 @@ function CheckoutPage() {
     return `${minutes}:${seconds}`;
   }, [transferSeconds]);
 
-  const next = () =>
+  const showValidationMessage = (message: string) => {
+    if (validationTimerRef.current) window.clearTimeout(validationTimerRef.current);
+    setValidationMessage(message);
+    validationTimerRef.current = window.setTimeout(() => {
+      setValidationMessage(null);
+      validationTimerRef.current = null;
+    }, 1500);
+  };
+
+  useEffect(
+    () => () => {
+      if (validationTimerRef.current) window.clearTimeout(validationTimerRef.current);
+    },
+    [],
+  );
+
+  const next = () => {
+    if (step === 0 && !form.name.trim()) {
+      showValidationMessage("Cargá tu nombre para continuar.");
+      return;
+    }
+    if (step === 0 && !form.phone.trim()) {
+      showValidationMessage("Cargá tu teléfono para continuar.");
+      return;
+    }
+    if (step === 1 && form.method === "delivery" && !form.address.trim()) {
+      showValidationMessage("Cargá la dirección para continuar.");
+      return;
+    }
+
     setStep((s) => {
       const nextStep = Math.min(STEPS.length - 1, s + 1);
-      if (nextStep === 2) setTransferSeconds(300);
+      if (nextStep === 2 && paymentMethod === "transferencia") setTransferSeconds(300);
       return nextStep;
     });
+  };
   const back = () => setStep((s) => Math.max(0, s - 1));
 
   const copyAlias = async () => {
@@ -154,7 +195,7 @@ function CheckoutPage() {
       toast.error("Para confirmar tu pedido necesitas iniciar sesion.");
       return;
     }
-    if (transferSeconds <= 0) {
+    if (paymentMethod === "transferencia" && transferSeconds <= 0) {
       toast.error(
         "El tiempo para transferir vencio. Volve al paso anterior y generamos una nueva ventana.",
       );
@@ -162,16 +203,17 @@ function CheckoutPage() {
     }
     setSubmitting(true);
     try {
-      await createOrder({
+      const result = await createOrder({
         customerName: form.name,
         customerPhone: form.phone,
         customerAddress: form.method === "delivery" ? form.address : null,
         deliveryMethod: form.method,
         deliveryTime: showDeliveryTime && form.deliveryTime ? form.deliveryTime : null,
         notes: form.notes || null,
-        total: orderTotal,
+        paymentMethod,
         items,
       });
+      setCreatedOrder(result.order);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "No pudimos crear el pedido. Proba de nuevo.",
@@ -316,8 +358,13 @@ function CheckoutPage() {
         </motion.div>
         <h1 className="font-display text-5xl mb-2">¡Listo!</h1>
         <p className="text-muted-foreground mb-6">
-          Recibimos tu pedido y quedo pendiente hasta que confirmemos la transferencia.
+          {paymentMethod === "efectivo"
+            ? `Recibimos tu pedido. El local te enviara un mensaje por WhatsApp para confirmarlo. Pagas en efectivo ${form.method === "pickup" ? "al retirar" : "al recibir"}.`
+            : "Recibimos tu pedido y quedo pendiente hasta que confirmemos la transferencia."}
         </p>
+        {createdOrder && (
+          <p className="mb-6 font-display text-2xl">Total: {formatMoney(createdOrder.total)}</p>
+        )}
         <SmashButton onClick={() => navigateWithTransition("/")}>Volver al inicio</SmashButton>
       </section>
     );
@@ -325,6 +372,22 @@ function CheckoutPage() {
 
   return (
     <section className="mx-auto max-w-3xl px-4 py-12 md:px-6">
+      <AnimatePresence>
+        {validationMessage && (
+          <motion.div
+            role="alert"
+            aria-live="assertive"
+            initial={{ opacity: 0, scale: 0.9, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -8 }}
+            transition={{ duration: 0.18 }}
+            className="fixed left-1/2 top-1/2 z-[80] w-[min(90vw,24rem)] -translate-x-1/2 -translate-y-1/2 border-2 border-red-700 bg-red-600 px-5 py-4 text-center font-display text-lg uppercase text-white shadow-[6px_6px_0_#450a0a]"
+          >
+            {validationMessage}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex flex-wrap gap-2 mb-4">
         <Sticker color="ink">Casi listo</Sticker>
       </div>
@@ -484,32 +547,90 @@ function CheckoutPage() {
 
             {step === 2 && (
               <div className="space-y-4">
-                <h2 className="font-display text-3xl mb-2">Transferi y avisa</h2>
-                <div className="border border-primary bg-primary/10 p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-display uppercase text-muted-foreground">Alias</p>
-                      <p className="font-display text-3xl text-ink">{settings.transfer_alias}</p>
-                    </div>
-                    <SmashButton variant="ghost" onClick={copyAlias}>
-                      <Copy className="h-4 w-4" /> Copiar
-                    </SmashButton>
-                  </div>
-                  <div className="mt-4 grid gap-2 border-t border-ink/20 pt-4 sm:grid-cols-2">
-                    <p className="text-sm text-muted-foreground">
-                      Importe exacto:{" "}
-                      <strong className="text-ink">{formatMoney(orderTotal)}</strong>
-                    </p>
-                    <p className="flex items-center gap-2 text-sm text-muted-foreground sm:justify-end">
-                      <Clock className="h-4 w-4 text-primary" /> Tiempo restante:{" "}
-                      <strong className="text-ink">{transferTime}</strong>
-                    </p>
-                  </div>
-                  <p className="mt-3 text-xs text-muted-foreground">
-                    Cuando termines la transferencia, toca el boton de abajo. El pedido queda
-                    pendiente hasta que el local confirme el pago.
-                  </p>
+                <h2 className="font-display text-3xl mb-2">¿Como queres pagar?</h2>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {settings.accepts_cash && (
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod("efectivo")}
+                      className={`border p-4 text-left transition-all ${
+                        paymentMethod === "efectivo"
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-ink bg-background hover:border-primary"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2 font-display text-xl uppercase">
+                        <Banknote className="h-5 w-5" /> Efectivo
+                      </span>
+                      <span className="mt-1 block text-xs opacity-80">
+                        Pagas {form.method === "pickup" ? "al retirar" : "al recibir"}
+                      </span>
+                    </button>
+                  )}
+                  {settings.accepts_transfer && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPaymentMethod("transferencia");
+                        setTransferSeconds(300);
+                      }}
+                      className={`border p-4 text-left transition-all ${
+                        paymentMethod === "transferencia"
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-ink bg-background hover:border-primary"
+                      }`}
+                    >
+                      <span className="font-display text-xl uppercase">Transferencia</span>
+                      <span className="mt-1 block text-xs opacity-80">
+                        Transferis antes de enviar
+                      </span>
+                    </button>
+                  )}
                 </div>
+                {!settings.accepts_cash && !settings.accepts_transfer && (
+                  <p className="border border-red-500 bg-red-500/10 p-4 text-sm text-red-700">
+                    El local no tiene medios de pago habilitados. Contactalo antes de continuar.
+                  </p>
+                )}
+                {paymentMethod === "efectivo" && settings.accepts_cash && (
+                  <div className="border border-primary bg-primary/10 p-4">
+                    <p className="font-display text-2xl">Confirmacion por WhatsApp</p>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      El local revisara el pedido y te enviara un mensaje por WhatsApp para
+                      confirmarlo. Pagas en efectivo{" "}
+                      {form.method === "pickup" ? "al retirar" : "al recibir"}.
+                    </p>
+                  </div>
+                )}
+                {paymentMethod === "transferencia" && settings.accepts_transfer && (
+                  <div className="border border-primary bg-primary/10 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-display uppercase text-muted-foreground">
+                          Alias
+                        </p>
+                        <p className="font-display text-3xl text-ink">{settings.transfer_alias}</p>
+                      </div>
+                      <SmashButton variant="ghost" onClick={copyAlias}>
+                        <Copy className="h-4 w-4" /> Copiar
+                      </SmashButton>
+                    </div>
+                    <div className="mt-4 grid gap-2 border-t border-ink/20 pt-4 sm:grid-cols-2">
+                      <p className="text-sm text-muted-foreground">
+                        Importe exacto:{" "}
+                        <strong className="text-ink">{formatMoney(orderTotal)}</strong>
+                      </p>
+                      <p className="flex items-center gap-2 text-sm text-muted-foreground sm:justify-end">
+                        <Clock className="h-4 w-4 text-primary" /> Tiempo restante:{" "}
+                        <strong className="text-ink">{transferTime}</strong>
+                      </p>
+                    </div>
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      Cuando termines la transferencia, toca el boton de abajo. El pedido queda
+                      pendiente hasta que el local confirme el pago.
+                    </p>
+                  </div>
+                )}
                 <ul className="divide-y-[2px] divide-ink/20">
                   {items.map((i) => (
                     <li key={i.id} className="flex items-center gap-3 py-2">
@@ -562,7 +683,9 @@ function CheckoutPage() {
                   <span className="font-display text-2xl text-ink">{formatMoney(orderTotal)}</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  No se prepara el pedido hasta que el dueño confirme la transferencia en el panel.
+                  {paymentMethod === "efectivo"
+                    ? "El pedido se prepara cuando el local lo confirme por WhatsApp."
+                    : "No se prepara el pedido hasta que el dueño confirme la transferencia en el panel."}
                 </p>
               </div>
             )}
@@ -574,18 +697,24 @@ function CheckoutPage() {
             <ChevronLeft className="h-4 w-4" /> Atrás
           </SmashButton>
           {step < STEPS.length - 1 ? (
-            <SmashButton
-              onClick={next}
-              disabled={
-                (step === 0 && (!form.name || !form.phone)) ||
-                (step === 1 && form.method === "delivery" && !form.address)
-              }
-            >
+            <SmashButton onClick={next}>
               Siguiente <ChevronRight className="h-4 w-4" />
             </SmashButton>
           ) : (
-            <SmashButton onClick={submit} disabled={submitting || transferSeconds <= 0} glow>
-              {submitting ? "Enviando…" : "Transferencia realizada"}
+            <SmashButton
+              onClick={submit}
+              disabled={
+                submitting ||
+                (!settings.accepts_cash && !settings.accepts_transfer) ||
+                (paymentMethod === "transferencia" && transferSeconds <= 0)
+              }
+              glow
+            >
+              {submitting
+                ? "Enviando…"
+                : paymentMethod === "efectivo"
+                  ? "Enviar pedido"
+                  : "Transferencia realizada"}
             </SmashButton>
           )}
         </div>

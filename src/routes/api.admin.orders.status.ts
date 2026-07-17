@@ -51,7 +51,7 @@ export const Route = createFileRoute("/api/admin/orders/status")({
             .maybeSingle(),
           (supabaseAdmin as any)
             .from("orders")
-            .select("id, created_at")
+            .select("id, created_at, payment_method")
             .eq("store_id", DEFAULT_STORE_ID)
             .eq("id", parsed.data.orderId)
             .maybeSingle(),
@@ -71,10 +71,20 @@ export const Route = createFileRoute("/api/admin/orders/status")({
           );
         }
 
-        const patch =
+        const isCash = currentOrder.payment_method === "efectivo";
+        const paymentStatus =
           parsed.data.status === "confirmed"
-            ? { status: parsed.data.status, payment_status: "approved" }
-            : { status: parsed.data.status };
+            ? isCash
+              ? "pending"
+              : "approved"
+            : parsed.data.status === "delivered" && isCash
+              ? "approved"
+              : ["rejected", "cancelled"].includes(parsed.data.status)
+                ? "not_required"
+                : null;
+        const patch = paymentStatus
+          ? { status: parsed.data.status, payment_status: paymentStatus }
+          : { status: parsed.data.status };
         const { data: order, error } = await (supabaseAdmin as any)
           .from("orders")
           .update(patch)

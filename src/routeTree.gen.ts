@@ -43,6 +43,8 @@ import { Route as ApiStoreAuthLoginRouteImport } from './routes/api.store.auth.l
 import { Route as ApiStoreAuthGoogleRouteImport } from './routes/api.store.auth.google'
 import { Route as ApiStoreAuthForgotPasswordRouteImport } from './routes/api.store.auth.forgot-password'
 import { Route as ApiAdminStockSyncBurgersRouteImport } from './routes/api.admin.stock.sync-burgers'
+import { Route as ApiAdminPushSubscriptionsRouteImport } from './routes/api.admin.push.subscriptions'
+import { Route as ApiAdminPushConfigRouteImport } from './routes/api.admin.push.config'
 import { Route as ApiAdminOrdersStatusRouteImport } from './routes/api.admin.orders.status'
 import { Route as ApiAdminOrdersEditRouteImport } from './routes/api.admin.orders.edit'
 
@@ -219,6 +221,17 @@ const ApiAdminStockSyncBurgersRoute =
     path: '/api/admin/stock/sync-burgers',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAdminPushSubscriptionsRoute =
+  ApiAdminPushSubscriptionsRouteImport.update({
+    id: '/api/admin/push/subscriptions',
+    path: '/api/admin/push/subscriptions',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiAdminPushConfigRoute = ApiAdminPushConfigRouteImport.update({
+  id: '/api/admin/push/config',
+  path: '/api/admin/push/config',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAdminOrdersStatusRoute = ApiAdminOrdersStatusRouteImport.update({
   id: '/api/admin/orders/status',
   path: '/api/admin/orders/status',
@@ -257,6 +270,8 @@ export interface FileRoutesByFullPath {
   '/api/store/orders': typeof ApiStoreOrdersRoute
   '/api/admin/orders/edit': typeof ApiAdminOrdersEditRoute
   '/api/admin/orders/status': typeof ApiAdminOrdersStatusRoute
+  '/api/admin/push/config': typeof ApiAdminPushConfigRoute
+  '/api/admin/push/subscriptions': typeof ApiAdminPushSubscriptionsRoute
   '/api/admin/stock/sync-burgers': typeof ApiAdminStockSyncBurgersRoute
   '/api/store/auth/forgot-password': typeof ApiStoreAuthForgotPasswordRoute
   '/api/store/auth/google': typeof ApiStoreAuthGoogleRoute
@@ -295,6 +310,8 @@ export interface FileRoutesByTo {
   '/api/store/orders': typeof ApiStoreOrdersRoute
   '/api/admin/orders/edit': typeof ApiAdminOrdersEditRoute
   '/api/admin/orders/status': typeof ApiAdminOrdersStatusRoute
+  '/api/admin/push/config': typeof ApiAdminPushConfigRoute
+  '/api/admin/push/subscriptions': typeof ApiAdminPushSubscriptionsRoute
   '/api/admin/stock/sync-burgers': typeof ApiAdminStockSyncBurgersRoute
   '/api/store/auth/forgot-password': typeof ApiStoreAuthForgotPasswordRoute
   '/api/store/auth/google': typeof ApiStoreAuthGoogleRoute
@@ -334,6 +351,8 @@ export interface FileRoutesById {
   '/api/store/orders': typeof ApiStoreOrdersRoute
   '/api/admin/orders/edit': typeof ApiAdminOrdersEditRoute
   '/api/admin/orders/status': typeof ApiAdminOrdersStatusRoute
+  '/api/admin/push/config': typeof ApiAdminPushConfigRoute
+  '/api/admin/push/subscriptions': typeof ApiAdminPushSubscriptionsRoute
   '/api/admin/stock/sync-burgers': typeof ApiAdminStockSyncBurgersRoute
   '/api/store/auth/forgot-password': typeof ApiStoreAuthForgotPasswordRoute
   '/api/store/auth/google': typeof ApiStoreAuthGoogleRoute
@@ -374,6 +393,8 @@ export interface FileRouteTypes {
     | '/api/store/orders'
     | '/api/admin/orders/edit'
     | '/api/admin/orders/status'
+    | '/api/admin/push/config'
+    | '/api/admin/push/subscriptions'
     | '/api/admin/stock/sync-burgers'
     | '/api/store/auth/forgot-password'
     | '/api/store/auth/google'
@@ -412,6 +433,8 @@ export interface FileRouteTypes {
     | '/api/store/orders'
     | '/api/admin/orders/edit'
     | '/api/admin/orders/status'
+    | '/api/admin/push/config'
+    | '/api/admin/push/subscriptions'
     | '/api/admin/stock/sync-burgers'
     | '/api/store/auth/forgot-password'
     | '/api/store/auth/google'
@@ -450,6 +473,8 @@ export interface FileRouteTypes {
     | '/api/store/orders'
     | '/api/admin/orders/edit'
     | '/api/admin/orders/status'
+    | '/api/admin/push/config'
+    | '/api/admin/push/subscriptions'
     | '/api/admin/stock/sync-burgers'
     | '/api/store/auth/forgot-password'
     | '/api/store/auth/google'
@@ -482,6 +507,8 @@ export interface RootRouteChildren {
   ApiStoreOrdersRoute: typeof ApiStoreOrdersRoute
   ApiAdminOrdersEditRoute: typeof ApiAdminOrdersEditRoute
   ApiAdminOrdersStatusRoute: typeof ApiAdminOrdersStatusRoute
+  ApiAdminPushConfigRoute: typeof ApiAdminPushConfigRoute
+  ApiAdminPushSubscriptionsRoute: typeof ApiAdminPushSubscriptionsRoute
   ApiAdminStockSyncBurgersRoute: typeof ApiAdminStockSyncBurgersRoute
   ApiStoreAuthForgotPasswordRoute: typeof ApiStoreAuthForgotPasswordRoute
   ApiStoreAuthGoogleRoute: typeof ApiStoreAuthGoogleRoute
@@ -734,6 +761,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAdminStockSyncBurgersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin/push/subscriptions': {
+      id: '/api/admin/push/subscriptions'
+      path: '/api/admin/push/subscriptions'
+      fullPath: '/api/admin/push/subscriptions'
+      preLoaderRoute: typeof ApiAdminPushSubscriptionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/push/config': {
+      id: '/api/admin/push/config'
+      path: '/api/admin/push/config'
+      fullPath: '/api/admin/push/config'
+      preLoaderRoute: typeof ApiAdminPushConfigRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/admin/orders/status': {
       id: '/api/admin/orders/status'
       path: '/api/admin/orders/status'
@@ -793,6 +834,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiStoreOrdersRoute: ApiStoreOrdersRoute,
   ApiAdminOrdersEditRoute: ApiAdminOrdersEditRoute,
   ApiAdminOrdersStatusRoute: ApiAdminOrdersStatusRoute,
+  ApiAdminPushConfigRoute: ApiAdminPushConfigRoute,
+  ApiAdminPushSubscriptionsRoute: ApiAdminPushSubscriptionsRoute,
   ApiAdminStockSyncBurgersRoute: ApiAdminStockSyncBurgersRoute,
   ApiStoreAuthForgotPasswordRoute: ApiStoreAuthForgotPasswordRoute,
   ApiStoreAuthGoogleRoute: ApiStoreAuthGoogleRoute,

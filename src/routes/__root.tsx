@@ -41,6 +41,9 @@ export const Route = createRootRoute({
         content: "Hamburguesas urbanas, sabor de barrio. Pedi online y retira o te lo llevamos.",
       },
       { name: "theme-color", content: "#f28c28" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "Hotspot" },
       { property: "og:title", content: "Hotspot - Burgers y street food" },
       { property: "og:description", content: "Hamburguesas urbanas, sabor de barrio." },
       { property: "og:type", content: "website" },
@@ -48,6 +51,8 @@ export const Route = createRootRoute({
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "icon", href: favicon },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/pwa-icon-192.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
       {

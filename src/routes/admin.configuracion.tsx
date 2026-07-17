@@ -89,6 +89,10 @@ function SettingsPage() {
   }, []);
 
   const save = async () => {
+    if (!settings.accepts_cash && !settings.accepts_transfer) {
+      toast.error("Habilita al menos un medio de pago.");
+      return;
+    }
     const payload = {
       ...settings,
       payment_methods: [
@@ -492,6 +496,17 @@ function SettingsPage() {
                   value={settings.automatic_message}
                   onChange={(e) => setSettings({ ...settings, automatic_message: e.target.value })}
                 />
+              </AdminField>
+              <AdminField label="Mensaje de confirmacion para efectivo">
+                <AdminTextarea
+                  value={settings.cash_confirmation_message}
+                  onChange={(e) =>
+                    setSettings({ ...settings, cash_confirmation_message: e.target.value })
+                  }
+                />
+                <p className="mt-1 text-xs text-zinc-500">
+                  Variables: {"{nombre}"}, {"{pedido}"}, {"{total}"} y {"{entrega}"}.
+                </p>
               </AdminField>
               <AdminField label="Ancho comanda en mm">
                 <AdminInput

@@ -2,6 +2,8 @@ import bcrypt from "bcryptjs";
 import { createHash, randomBytes } from "node:crypto";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { extraIngredientPrice, productExtraIngredients, productIngredients } from "@/lib/admin";
+import type { Product } from "@/lib/products";
 import {
   createCustomerSessionToken,
   customerSessionCookie,
@@ -65,10 +67,8 @@ export const createCustomerOrderSchema = z.object({
     .optional()
     .or(z.literal("")),
   notes: z.string().trim().max(500).nullable().optional(),
-  paymentMethod: z.string().trim().max(40).default("transferencia"),
-  paymentStatus: z.string().trim().max(40).default("pending"),
-  status: z.string().trim().max(40).default("pending_payment"),
-  total: z.number().finite().nonnegative(),
+  paymentMethod: z.enum(["efectivo", "transferencia"]),
+  total: z.number().finite().nonnegative().optional(),
   items: z
     .array(
       z.object({
@@ -312,7 +312,9 @@ export async function createCustomerOrder(
 ) {
   const { data: settings, error: settingsError } = await (supabaseAdmin as any)
     .from("store_settings")
-    .select("is_open, current_day_started_at, current_menu_shift")
+    .select(
+      "is_open, current_day_started_at, current_menu_shift, accepts_cash, accepts_transfer, delivery_fee",
+    )
     .eq("store_id", customer.store_id)
     .limit(1)
     .maybeSingle();
@@ -321,45 +323,68 @@ export async function createCustomerOrder(
   if (!settings?.is_open || !settings.current_day_started_at) {
     throw new Error("El local esta cerrado. Volve a intentar cuando iniciemos el dia.");
   }
+  if (input.paymentMethod === "efectivo" && !settings.accepts_cash) {
+    throw new Error("El pago en efectivo no esta habilitado.");
+  }
+  if (input.paymentMethod === "transferencia" && !settings.accepts_transfer) {
+    throw new Error("El pago por transferencia no esta habilitado.");
+  }
 
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  const productIds = input.items
-    .map((item) => item.product_id)
-    .filter((id): id is string => Boolean(id && uuidPattern.test(id)));
-  if (productIds.length > 0) {
-    const { data: products, error: productsError } = await (supabaseAdmin as any)
-      .from("products")
-      .select("id, category")
-      .in("id", productIds);
-
-    if (productsError) throw productsError;
-
-    const categoryKeys = [
-      ...new Set((products ?? []).map((product: any) => product.category).filter(Boolean)),
-    ];
-    const { data: categories, error: categoriesError } = await (supabaseAdmin as any)
-      .from("product_categories")
-      .select("key, menu_shifts")
-      .in("key", categoryKeys);
-
-    if (categoriesError) throw categoriesError;
-
-    const productsById = new Map((products ?? []).map((product: any) => [product.id, product]));
-    const categoriesByKey = new Map(
-      (categories ?? []).map((category: any) => [category.key, category]),
-    );
-    const blockedItem = input.items.find((item) => {
-      if (!item.product_id) return false;
-      const product = productsById.get(item.product_id);
-      const category = product ? categoriesByKey.get(product.category) : null;
-      const shifts = category?.menu_shifts?.length ? category.menu_shifts : ["lunch", "dinner"];
-      return !shifts.includes(settings.current_menu_shift || "dinner");
-    });
-
-    if (blockedItem) {
-      throw new Error(`${blockedItem.name} no esta disponible en este horario.`);
-    }
+  const productIds = [...new Set(input.items.map((item) => item.product_id))];
+  if (productIds.some((id) => !id || !uuidPattern.test(id))) {
+    throw new Error("El carrito contiene un producto invalido. Volve a cargar el menu.");
   }
+
+  const { data: products, error: productsError } = await (supabaseAdmin as any)
+    .from("products")
+    .select("id, name, price, category, available, ingredients, extra_ingredient_prices")
+    .eq("store_id", customer.store_id)
+    .in("id", productIds);
+  if (productsError) throw productsError;
+  if ((products ?? []).length !== productIds.length) {
+    throw new Error("Uno de los productos ya no existe. Volve a cargar el menu.");
+  }
+
+  const categoryKeys = [
+    ...new Set((products ?? []).map((product: Product) => product.category).filter(Boolean)),
+  ];
+  const { data: categories, error: categoriesError } = await (supabaseAdmin as any)
+    .from("product_categories")
+    .select("key, active, menu_shifts")
+    .eq("store_id", customer.store_id)
+    .in("key", categoryKeys);
+  if (categoriesError) throw categoriesError;
+
+  const productsById = new Map(
+    (products ?? []).map((product: Product) => [product.id, product] as const),
+  );
+  const categoriesByKey = new Map(
+    (categories ?? []).map((category: any) => [category.key, category] as const),
+  );
+  const authoritativeItems = input.items.map((item) => {
+    const product = productsById.get(item.product_id || "");
+    if (!product || !product.available) {
+      throw new Error(`${product?.name || item.name} ya no esta disponible.`);
+    }
+    const category = categoriesByKey.get(product.category);
+    const shifts = category?.menu_shifts?.length ? category.menu_shifts : ["lunch", "dinner"];
+    if (category?.active === false || !shifts.includes(settings.current_menu_shift || "dinner")) {
+      throw new Error(`${product.name} no esta disponible en este horario.`);
+    }
+
+    const allowedExtras = new Set(productExtraIngredients(product).map((extra) => extra.name));
+    if (item.added_ingredients.some((ingredient) => !allowedExtras.has(ingredient))) {
+      throw new Error(`${product.name} contiene un extra invalido.`);
+    }
+    const unitPrice =
+      Number(product.price) +
+      item.added_ingredients.reduce(
+        (sum, ingredient) => sum + extraIngredientPrice(product, ingredient),
+        0,
+      );
+    return { item, product, unitPrice };
+  });
 
   if (settings.current_menu_shift === "midnight" && input.deliveryMethod === "delivery") {
     throw new Error("Durante madrugada solo tomamos pedidos para retiro.");
@@ -375,10 +400,12 @@ export async function createCustomerOrder(
     delivery_method: input.deliveryMethod,
     delivery_time: input.deliveryTime ? input.deliveryTime.trim() : null,
     payment_method: input.paymentMethod,
-    payment_status: input.paymentStatus,
+    payment_status: "pending",
     notes: input.notes?.trim() || null,
-    status: input.status,
-    total: input.total,
+    status: input.paymentMethod === "efectivo" ? "pending_confirmation" : "pending_payment",
+    total:
+      authoritativeItems.reduce((sum, { item, unitPrice }) => sum + unitPrice * item.quantity, 0) +
+      (input.deliveryMethod === "delivery" ? Number(settings.delivery_fee || 0) : 0),
   };
 
   let { data, error } = await (supabaseAdmin as any)
@@ -400,13 +427,13 @@ export async function createCustomerOrder(
 
   if (error) throw error;
 
-  const itemsPayload = input.items.map((item) => ({
+  const itemsPayload = authoritativeItems.map(({ item, product, unitPrice }) => ({
     order_id: data.id,
-    product_id: item.product_id && uuidPattern.test(item.product_id) ? item.product_id : null,
-    product_name: item.name,
-    unit_price: item.price,
+    product_id: product.id,
+    product_name: product.name,
+    unit_price: unitPrice,
     quantity: item.quantity,
-    base_ingredients: item.base_ingredients,
+    base_ingredients: productIngredients(product),
     removed_ingredients: item.removed_ingredients,
     added_ingredients: item.added_ingredients,
     item_notes: item.item_notes?.trim() || null,
@@ -423,7 +450,7 @@ export async function createCustomerOrder(
     if (retryError) throw retryError;
   }
 
-  return data;
+  return { ...data, order_items: itemsPayload };
 }
 
 export async function customerSessionResponse(

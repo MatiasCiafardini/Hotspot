@@ -162,6 +162,7 @@ CREATE TABLE IF NOT EXISTS public.store_settings (
   accepts_cash BOOLEAN NOT NULL DEFAULT true,
   accepts_transfer BOOLEAN NOT NULL DEFAULT true,
   automatic_message TEXT NOT NULL DEFAULT '',
+  cash_confirmation_message TEXT NOT NULL DEFAULT 'Hola {nombre}, confirmamos tu pedido {pedido}. El total es {total}. Pagas en efectivo {entrega}.',
   print_width_mm INTEGER NOT NULL DEFAULT 80,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()

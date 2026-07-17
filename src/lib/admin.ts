@@ -69,6 +69,7 @@ export type StoreSettings = {
   accepts_cash: boolean;
   accepts_transfer: boolean;
   automatic_message: string;
+  cash_confirmation_message: string;
   print_width_mm: number;
   is_open?: boolean;
   current_day_started_at?: string | null;
@@ -149,6 +150,8 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   accepts_cash: true,
   accepts_transfer: true,
   automatic_message: "Recibimos tu pedido. Te avisamos cuando este confirmado.",
+  cash_confirmation_message:
+    "Hola {nombre}, confirmamos tu pedido {pedido}. El total es {total}. Pagas en efectivo {entrega}.",
   print_width_mm: 58,
   is_open: false,
   current_day_started_at: null,
@@ -370,9 +373,16 @@ export function buildOrderConfirmedWhatsAppUrl(
   const phone = normalizeWhatsAppPhone(order.customer_phone);
   if (!phone) return null;
 
-  const baseMessage =
-    settings.automatic_message?.trim() ||
-    `Hola ${order.customer_name}, tu pedido ${shortOrderId(order.id)} fue confirmado y ya esta en preparacion.`;
+  const deliveryText = order.delivery_method === "delivery" ? "al recibir" : "al retirar";
+  const template =
+    order.payment_method === "efectivo"
+      ? settings.cash_confirmation_message?.trim() || DEFAULT_SETTINGS.cash_confirmation_message
+      : settings.automatic_message?.trim() || DEFAULT_SETTINGS.automatic_message;
+  const baseMessage = template
+    .replaceAll("{nombre}", order.customer_name)
+    .replaceAll("{pedido}", shortOrderId(order.id))
+    .replaceAll("{total}", formatMoney(order.total))
+    .replaceAll("{entrega}", deliveryText);
   const message = [
     baseMessage,
     "",
@@ -432,7 +442,11 @@ export function buildComandaLines(order: AdminOrder, settings: StoreSettings = D
   const deliveryTime = formatDeliveryTime(order.delivery_time);
   if (deliveryTime) lines.push(`Horario entrega ${deliveryTime}`);
   if (order.customer_address) lines.push(`Domicilio ${order.customer_address}`);
-  if (order.payment_method === "dividido") {
+  if (order.payment_method === "efectivo") {
+    lines.push(
+      `Pago efectivo ${order.delivery_method === "delivery" ? "al recibir" : "al retirar"}`,
+    );
+  } else if (order.payment_method === "dividido") {
     lines.push("Pago dividido");
     lines.push(`Efectivo ${formatMoney(order.payment_cash_amount || 0)}`);
     lines.push(`Transfer ${formatMoney(order.payment_transfer_amount || 0)}`);
@@ -624,7 +638,7 @@ export function deriveCashSummaryStats(orders: AdminOrder[]) {
         return sum + Number(order.payment_transfer_amount || 0);
       return isTransferPayment(order) ? sum + Number(order.total) : sum;
     }, 0);
-  const cash = validOrders.reduce((sum, order) => {
+  const cash = validOrders.filter(isApprovedPayment).reduce((sum, order) => {
     if (order.payment_method === "dividido") return sum + Number(order.payment_cash_amount || 0);
     return isCashPayment(order) ? sum + Number(order.total) : sum;
   }, 0);

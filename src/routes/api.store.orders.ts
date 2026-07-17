@@ -9,6 +9,7 @@ import {
   readJson,
   unauthorized,
 } from "@/lib/server/customer-auth";
+import { sendNewOrderPush } from "@/lib/server/push-notifications";
 
 export const Route = createFileRoute("/api/store/orders")({
   server: {
@@ -23,6 +24,11 @@ export const Route = createFileRoute("/api/store/orders")({
 
         try {
           const order = await createCustomerOrder(customer, parsed.data);
+          queueMicrotask(() => {
+            void sendNewOrderPush(order, customer.store_id).catch((pushError) => {
+              console.error("No se pudo enviar la notificacion del nuevo pedido.", pushError);
+            });
+          });
           return json({ order }, { status: 201 });
         } catch (error) {
           return badRequest(error instanceof Error ? error.message : "No pudimos crear el pedido.");

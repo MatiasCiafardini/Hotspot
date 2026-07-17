@@ -16,6 +16,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo_hotspot.png";
 import { cn } from "@/lib/utils";
+import { PushNotificationsControl } from "@/components/admin/PushNotificationsControl";
 
 const NAV = [
   { to: "/admin/dashboard", label: "Dashboard", Icon: BarChart3 },
@@ -211,6 +212,7 @@ function AdminSidebar({
       </nav>
 
       <div className="space-y-2 border-t border-white/10 p-3">
+        {!collapsed && <PushNotificationsControl compact />}
         <button
           type="button"
           onClick={onCollapse}

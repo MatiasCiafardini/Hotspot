@@ -8,6 +8,7 @@ import {
   formatDateTime,
   formatMoney,
   ORDER_STATUS_LABEL,
+  PAYMENT_STATUS_LABEL,
   shortOrderId,
   type AdminOrder,
 } from "@/lib/admin";
@@ -227,6 +228,10 @@ function AccountPage() {
                   <span className="text-muted-foreground">{itemsLabel(order)}</span>
                   <strong className="font-display text-lg">{formatMoney(order.total)}</strong>
                 </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Pago {order.payment_method || "A confirmar"} ·{" "}
+                  {PAYMENT_STATUS_LABEL[order.payment_status || "pending"]}
+                </p>
                 {order.order_items?.length ? (
                   <p className="mt-2 truncate text-xs text-muted-foreground">
                     {order.order_items

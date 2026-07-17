@@ -86,7 +86,10 @@ check_env_file() {
     GOOGLE_CLIENT_ID \
     VITE_GOOGLE_CLIENT_ID \
     CUSTOMER_SESSION_SECRET \
-    SUPABASE_SERVICE_ROLE_KEY; do
+    SUPABASE_SERVICE_ROLE_KEY \
+    VAPID_PUBLIC_KEY \
+    VAPID_PRIVATE_KEY \
+    VAPID_SUBJECT; do
     if ! grep -qE "^${key}=" .env; then
       printf "[deploy:warn] Falta %s en .env\n" "$key" >&2
       missing=1
