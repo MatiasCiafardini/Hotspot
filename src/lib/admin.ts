@@ -145,7 +145,7 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   contact_phone: "+54 9 11 0000-0000",
   address: "Direccion del local",
   delivery_fee: 5500,
-  transfer_alias: "HOTSPOT.PEDIDOS",
+  transfer_alias: "",
   payment_methods: ["Efectivo", "Transferencia"],
   accepts_cash: true,
   accepts_transfer: true,

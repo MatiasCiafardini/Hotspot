@@ -1,5 +1,5 @@
 ALTER TABLE public.store_settings
-  ADD COLUMN IF NOT EXISTS transfer_alias TEXT NOT NULL DEFAULT 'HOTSPOT.PEDIDOS';
+  ADD COLUMN IF NOT EXISTS transfer_alias TEXT NOT NULL DEFAULT '';
 
 DROP POLICY IF EXISTS "Authenticated read settings" ON public.store_settings;
 DROP POLICY IF EXISTS "Owner read settings" ON public.store_settings;

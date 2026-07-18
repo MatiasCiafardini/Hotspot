@@ -93,8 +93,13 @@ function SettingsPage() {
       toast.error("Habilita al menos un medio de pago.");
       return;
     }
+    if (settings.accepts_transfer && !settings.transfer_alias.trim()) {
+      toast.error("Configura el alias antes de habilitar transferencias.");
+      return;
+    }
     const payload = {
       ...settings,
+      transfer_alias: settings.transfer_alias.trim(),
       payment_methods: [
         settings.accepts_cash ? "Efectivo" : null,
         settings.accepts_transfer ? "Transferencia" : null,
@@ -109,7 +114,7 @@ function SettingsPage() {
           .single()
       : (supabase as any).from("store_settings").insert(payload).select().single();
     const { data, error } = await request;
-    if (error) return toast.error("No se pudo guardar la configuracion.");
+    if (error) return toast.error(error.message || "No se pudo guardar la configuracion.");
     if (data) setSettings({ ...settings, ...(data as StoreSettings) });
     toast.success("Configuracion guardada.");
   };
