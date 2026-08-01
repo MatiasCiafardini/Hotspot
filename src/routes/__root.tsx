@@ -41,6 +41,7 @@ export const Route = createRootRoute({
         content: "Hamburguesas urbanas, sabor de barrio. Pedi online y retira o te lo llevamos.",
       },
       { name: "theme-color", content: "#f28c28" },
+      { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: "Hotspot" },

@@ -25,6 +25,12 @@ export type OrderItem = {
   removed_ingredients?: string[] | null;
   added_ingredients?: string[] | null;
   item_notes?: string | null;
+  custom_extras?: CustomSaleExtra[] | null;
+};
+
+export type CustomSaleExtra = {
+  name: string;
+  price: number;
 };
 
 export type AdminOrder = {
@@ -74,6 +80,7 @@ export type StoreSettings = {
   is_open?: boolean;
   current_day_started_at?: string | null;
   current_menu_shift?: MenuShift;
+  hero_product_id?: string | null;
 };
 
 export type CashClosure = {
@@ -156,6 +163,7 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   is_open: false,
   current_day_started_at: null,
   current_menu_shift: "dinner",
+  hero_product_id: null,
 };
 
 export const DEFAULT_INGREDIENTS: Record<string, string[]> = {
@@ -461,6 +469,9 @@ export function buildComandaLines(order: AdminOrder, settings: StoreSettings = D
       lines.push(`Sin: ${formatIngredientList(item.removed_ingredients)}`);
     if (item.added_ingredients?.length)
       lines.push(`Extra: ${formatIngredientList(item.added_ingredients)}`);
+    item.custom_extras?.forEach((extra) =>
+      lines.push(`Extra libre: ${extra.name} ${formatMoney(extra.price)}`),
+    );
     if (item.item_notes) lines.push(`Obs: ${item.item_notes}`);
     lines.push(TICKET_SEPARATOR);
   });

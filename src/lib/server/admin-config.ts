@@ -18,16 +18,26 @@ export const deleteCategorySchema = z.object({
 });
 
 export async function listAdminConfig() {
-  const [{ data: settings, error: settingsError }, { data: categories, error: categoriesError }] =
+  const [
+    { data: settings, error: settingsError },
+    { data: categories, error: categoriesError },
+    { data: products, error: productsError },
+  ] =
     await Promise.all([
       (supabaseAdmin as any).from("store_settings").select("*").limit(1).maybeSingle(),
       (supabaseAdmin as any).from("product_categories").select("*").order("sort_order"),
+      (supabaseAdmin as any)
+        .from("products")
+        .select("id, name, category, image_url, available, sort_order")
+        .eq("category", "burgers")
+        .order("sort_order"),
     ]);
 
   if (settingsError) throw settingsError;
   if (categoriesError) throw categoriesError;
+  if (productsError) throw productsError;
 
-  return { settings, categories: categories ?? [] };
+  return { settings, categories: categories ?? [], products: products ?? [] };
 }
 
 export async function saveProductCategory(input: z.infer<typeof saveCategorySchema>) {

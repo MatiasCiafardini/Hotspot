@@ -16,7 +16,9 @@ import {
   MENU_SHIFTS,
   type MenuShift,
   type ProductCategory,
+  type Product,
 } from "@/lib/products";
+import { resolveImage } from "@/lib/products";
 import { toast } from "sonner";
 
 type SettingsTab = "account" | "local" | "categories" | "shipping" | "payments";
@@ -40,6 +42,7 @@ function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("account");
   const [settings, setSettings] = useState<StoreSettings>(DEFAULT_SETTINGS);
   const [categories, setCategories] = useState<ProductCategory[]>(DEFAULT_CATEGORIES);
+  const [heroProducts, setHeroProducts] = useState<Product[]>([]);
   const [account, setAccount] = useState({
     email: "",
     name: "",
@@ -63,11 +66,13 @@ function SettingsPage() {
         return response.json() as Promise<{
           settings: StoreSettings | null;
           categories: ProductCategory[];
+          products: Product[];
         }>;
       })
-      .then(({ settings, categories }) => {
+      .then(({ settings, categories, products }) => {
         if (settings) setSettings({ ...DEFAULT_SETTINGS, ...settings });
         if (categories.length) setCategories(categories);
+        setHeroProducts(products ?? []);
       })
       .catch(() => toast.error("No pudimos cargar la configuracion."));
   };
@@ -334,6 +339,33 @@ function SettingsPage() {
                   onChange={(e) => setSettings({ ...settings, logo_url: e.target.value })}
                 />
               </AdminField>
+              <AdminField label="Hamburguesa destacada en el inicio">
+                <select
+                  value={settings.hero_product_id || ""}
+                  onChange={(e) =>
+                    setSettings({ ...settings, hero_product_id: e.target.value || null })
+                  }
+                  className="min-h-11 w-full rounded-md border border-white/15 bg-black px-3 py-2 text-sm text-white outline-none focus:border-orange-400"
+                >
+                  <option value="">Automatica (primera hamburguesa disponible)</option>
+                  {heroProducts.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.name}{product.available ? "" : " (pausada)"}
+                    </option>
+                  ))}
+                </select>
+              </AdminField>
+              {settings.hero_product_id &&
+                heroProducts.find((product) => product.id === settings.hero_product_id) && (
+                  <img
+                    src={resolveImage(
+                      heroProducts.find((product) => product.id === settings.hero_product_id)
+                        ?.image_url,
+                    )}
+                    alt="Vista previa del hero"
+                    className="h-36 w-full rounded-md border border-white/15 object-cover sm:w-64"
+                  />
+                )}
               <AdminField label="Horarios">
                 <AdminInput
                   value={settings.hours}

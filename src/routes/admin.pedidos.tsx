@@ -484,6 +484,14 @@ function OrdersPage() {
                             ? formatIngredientList(item.added_ingredients)
                             : "Ninguno"}
                         </p>
+                        <p>
+                          Extras libres:{" "}
+                          {item.custom_extras?.length
+                            ? item.custom_extras
+                                .map((extra) => `${extra.name} (${formatMoney(extra.price)})`)
+                                .join(", ")
+                            : "Ninguno"}
+                        </p>
                         <p>Obs: {item.item_notes || "Sin observaciones"}</p>
                       </div>
                     </div>
@@ -1255,6 +1263,14 @@ function OrderDetail({ order, onClose }: { order: AdminOrder; onClose: () => voi
               </p>
               <p className="text-sm text-zinc-400">
                 Agregados: {formatIngredientList(item.added_ingredients) || "Ninguno"}
+              </p>
+              <p className="text-sm text-zinc-400">
+                Extras libres:{" "}
+                {item.custom_extras?.length
+                  ? item.custom_extras
+                      .map((extra) => `${extra.name} (${formatMoney(extra.price)})`)
+                      .join(", ")
+                  : "Ninguno"}
               </p>
               <p className="text-sm text-zinc-400">
                 Observaciones: {item.item_notes || "Sin observaciones"}

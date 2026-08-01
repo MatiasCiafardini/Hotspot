@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Flame, Truck, Star, ArrowRight, Clock } from "lucide-react";
 import heroImg from "@/assets/burger-double.jpg";
+import { resolveImage } from "@/lib/products";
+import type { Product } from "@/lib/products";
+import type { StoreSettings } from "@/lib/admin";
 import { SmashButton } from "@/components/SmashButton";
 import { Sticker } from "@/components/Sticker";
 import { Marquee } from "@/components/Marquee";
@@ -23,6 +27,27 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
+  const [heroProduct, setHeroProduct] = useState<Product | null>(null);
+
+  useEffect(() => {
+    fetch("/api/store/menu")
+      .then((response) => {
+        if (!response.ok) throw new Error("No pudimos cargar el producto destacado.");
+        return response.json() as Promise<{ products: Product[]; settings: StoreSettings }>;
+      })
+      .then(({ products, settings }) => {
+        const burgers = products.filter(
+          (product) => product.category === "burgers" && product.available !== false,
+        );
+        setHeroProduct(
+          burgers.find((product) => product.id === settings.hero_product_id) ?? burgers[0] ?? null,
+        );
+      })
+      .catch(() => setHeroProduct(null));
+  }, []);
+
+  const heroImage = heroProduct ? resolveImage(heroProduct.image_url) : heroImg;
+
   return (
     <>
       {/* HERO — street poster */}
@@ -108,8 +133,8 @@ function HomePage() {
               className="relative z-10 mx-auto aspect-[16/9] max-h-[220px] w-full max-w-2xl overflow-hidden border border-ink bg-card shadow-[0_28px_60px_-38px_var(--ink)] sm:max-h-none"
             >
               <img
-                src={heroImg}
-                alt="Hamburguesa Hotspot"
+                src={heroImage}
+                alt={heroProduct?.name || "Hamburguesa Hotspot"}
                 width={1536}
                 height={864}
                 className="h-full w-full object-cover object-center"

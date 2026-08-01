@@ -31,6 +31,7 @@ import {
   productExtraIngredients,
   productIngredients,
   type AdminOrder,
+  type CustomSaleExtra,
   type StoreSettings,
 } from "@/lib/admin";
 import {
@@ -60,6 +61,7 @@ type CartItem = {
   quantity: number;
   removedIngredients: string[];
   addedIngredients: string[];
+  customExtras: CustomSaleExtra[];
   notes: string;
 };
 
@@ -69,7 +71,8 @@ function cartItemUnitPrice(item: CartItem) {
     item.addedIngredients.reduce(
       (sum, ingredient) => sum + extraIngredientPrice(item.product, ingredient),
       0,
-    )
+    ) +
+    item.customExtras.reduce((sum, extra) => sum + Number(extra.price || 0), 0)
   );
 }
 
@@ -86,6 +89,7 @@ function LocalSalePage() {
   const [customQuantity, setCustomQuantity] = useState(1);
   const [customRemoved, setCustomRemoved] = useState<string[]>([]);
   const [customAdded, setCustomAdded] = useState<string[]>([]);
+  const [customExtras, setCustomExtras] = useState<Array<CustomSaleExtra & { id: string }>>([]);
   const [customNotes, setCustomNotes] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -211,11 +215,23 @@ function LocalSalePage() {
     setCustomQuantity(1);
     setCustomRemoved([]);
     setCustomAdded([]);
+    setCustomExtras([]);
     setCustomNotes("");
   };
 
   const addCustomizedItem = () => {
     if (!customizing) return;
+    const cleanCustomExtras = customExtras
+      .map((extra) => ({ name: extra.name.trim(), price: Number(extra.price) }))
+      .filter((extra) => extra.name || extra.price);
+    if (
+      cleanCustomExtras.some(
+        (extra) => !extra.name || !Number.isFinite(extra.price) || extra.price < 0,
+      )
+    ) {
+      toast.error("Completa el nombre y un precio valido para cada extra.");
+      return;
+    }
     setCart((current) => [
       ...current,
       {
@@ -224,6 +240,7 @@ function LocalSalePage() {
         quantity: customQuantity,
         removedIngredients: customRemoved,
         addedIngredients: customAdded,
+        customExtras: cleanCustomExtras,
         notes: customNotes.trim(),
       },
     ]);
@@ -305,6 +322,7 @@ function LocalSalePage() {
             quantity: item.quantity,
             removedIngredients: item.removedIngredients,
             addedIngredients: item.addedIngredients,
+            customExtras: item.customExtras,
             notes: item.notes.trim(),
           })),
         }),
@@ -513,12 +531,14 @@ function LocalSalePage() {
           quantity={customQuantity}
           removed={customRemoved}
           added={customAdded}
+          customExtras={customExtras}
           notes={customNotes}
           onClose={() => setCustomizing(null)}
           onNotesChange={setCustomNotes}
           onQuantityChange={setCustomQuantity}
           onRemovedChange={setCustomRemoved}
           onAddedChange={setCustomAdded}
+          onCustomExtrasChange={setCustomExtras}
           onSubmit={addCustomizedItem}
         />
       )}
@@ -596,9 +616,11 @@ function CustomizeDialog({
   quantity,
   removed,
   added,
+  customExtras,
   notes,
   onClose,
   onAddedChange,
+  onCustomExtrasChange,
   onNotesChange,
   onQuantityChange,
   onRemovedChange,
@@ -608,9 +630,11 @@ function CustomizeDialog({
   quantity: number;
   removed: string[];
   added: string[];
+  customExtras: Array<CustomSaleExtra & { id: string }>;
   notes: string;
   onClose: () => void;
   onAddedChange: (value: string[]) => void;
+  onCustomExtrasChange: (value: Array<CustomSaleExtra & { id: string }>) => void;
   onNotesChange: (value: string) => void;
   onQuantityChange: (value: number) => void;
   onRemovedChange: (value: string[]) => void;
@@ -639,7 +663,8 @@ function CustomizeDialog({
 
   const unitPrice =
     Number(product.price) +
-    added.reduce((sum, ingredient) => sum + extraIngredientPrice(product, ingredient), 0);
+    added.reduce((sum, ingredient) => sum + extraIngredientPrice(product, ingredient), 0) +
+    customExtras.reduce((sum, extra) => sum + Math.max(0, Number(extra.price) || 0), 0);
 
   return (
     <div
@@ -758,6 +783,78 @@ function CustomizeDialog({
               </div>
             </div>
           )}
+
+          <div>
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-zinc-300">Otros extras</p>
+                <p className="text-xs text-zinc-500">Nombre y precio por unidad.</p>
+              </div>
+              <AdminButton
+                type="button"
+                variant="ghost"
+                onClick={() =>
+                  onCustomExtrasChange([
+                    ...customExtras,
+                    { id: createClientId(), name: "", price: 0 },
+                  ])
+                }
+              >
+                <Plus className="h-4 w-4" /> Agregar extra
+              </AdminButton>
+            </div>
+            {customExtras.length > 0 && (
+              <div className="grid gap-2">
+                {customExtras.map((extra) => (
+                  <div
+                    key={extra.id}
+                    className="grid grid-cols-[minmax(0,1fr)_130px_40px] gap-2 rounded-md border border-white/10 bg-zinc-900 p-2"
+                  >
+                    <AdminInput
+                      value={extra.name}
+                      maxLength={80}
+                      placeholder="Ej: doble panceta"
+                      aria-label="Nombre del extra"
+                      onChange={(event) =>
+                        onCustomExtrasChange(
+                          customExtras.map((item) =>
+                            item.id === extra.id ? { ...item, name: event.target.value } : item,
+                          ),
+                        )
+                      }
+                    />
+                    <AdminInput
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={extra.price || ""}
+                      placeholder="Precio"
+                      aria-label={`Precio de ${extra.name || "extra"}`}
+                      onChange={(event) =>
+                        onCustomExtrasChange(
+                          customExtras.map((item) =>
+                            item.id === extra.id
+                              ? { ...item, price: Number(event.target.value) }
+                              : item,
+                          ),
+                        )
+                      }
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onCustomExtrasChange(customExtras.filter((item) => item.id !== extra.id))
+                      }
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-red-400/30 bg-red-500/10 text-red-100 hover:bg-red-500/20"
+                      aria-label={`Eliminar ${extra.name || "extra"}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           <AdminField label="Observaciones">
             <AdminTextarea
@@ -981,6 +1078,14 @@ function CheckoutStep({
                   {item.addedIngredients.length > 0 && (
                     <p className="mt-1 text-xs text-orange-100">
                       Extra: {formatIngredientList(item.addedIngredients)}
+                    </p>
+                  )}
+                  {item.customExtras.length > 0 && (
+                    <p className="mt-1 text-xs text-emerald-100">
+                      Extras libres:{" "}
+                      {item.customExtras
+                        .map((extra) => `${extra.name} (${formatMoney(extra.price)})`)
+                        .join(", ")}
                     </p>
                   )}
                 </div>

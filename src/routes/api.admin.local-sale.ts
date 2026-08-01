@@ -37,6 +37,15 @@ const localSaleSchema = z.object({
         quantity: z.number().int().positive().max(50),
         removedIngredients: z.array(z.string().trim().max(80)).default([]),
         addedIngredients: z.array(z.string().trim().max(80)).default([]),
+        customExtras: z
+          .array(
+            z.object({
+              name: z.string().trim().min(1).max(80),
+              price: z.number().finite().nonnegative().max(1000000),
+            }),
+          )
+          .max(30)
+          .default([]),
         notes: z.string().trim().max(240).optional(),
       }),
     )
@@ -145,7 +154,11 @@ export const Route = createFileRoute("/api/admin/local-sale")({
               extraSum + (product ? extraIngredientPrice(product, ingredient) : 0),
             0,
           );
-          return sum + (Number(product?.price ?? 0) + extras) * item.quantity;
+          const customExtras = item.customExtras.reduce(
+            (extraSum, extra) => extraSum + extra.price,
+            0,
+          );
+          return sum + (Number(product?.price ?? 0) + extras + customExtras) * item.quantity;
         }, 0);
         const discountValue = Number(input.discountValue) || 0;
         const discountAmount =
@@ -232,11 +245,13 @@ export const Route = createFileRoute("/api/admin/local-sale")({
               item.addedIngredients.reduce(
                 (sum, ingredient) => sum + extraIngredientPrice(product, ingredient),
                 0,
-              ),
+              ) +
+              item.customExtras.reduce((sum, extra) => sum + extra.price, 0),
             quantity: item.quantity,
             base_ingredients: productIngredients(product),
             removed_ingredients: item.removedIngredients,
             added_ingredients: item.addedIngredients,
+            custom_extras: item.customExtras,
             item_notes: item.notes || null,
           };
         });
