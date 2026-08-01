@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Printer, ReceiptText, Search } from "lucide-react";
+import { ChevronDown, MapPin, Package, Phone, Printer, ReceiptText, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { adminApiFetch, readApiError } from "@/lib/admin-api";
 import {
@@ -13,6 +13,8 @@ import {
   type CashClosure,
   DEFAULT_SETTINGS,
   formatDateTime,
+  formatDeliveryTime,
+  formatIngredientList,
   formatMoney,
   ORDER_STATUS_CLASS,
   ORDER_STATUS_LABEL,
@@ -42,6 +44,7 @@ function HistoryPage() {
   const [settings, setSettings] = useState<StoreSettings>(DEFAULT_SETTINGS);
   const [tab, setTab] = useState<"orders" | "closures">("orders");
   const [cashSummary, setCashSummary] = useState<CashSummaryDialogData | null>(null);
+  const [expandedOrderIds, setExpandedOrderIds] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState({ date: "", status: "all", payment: "all", search: "" });
 
   useEffect(() => {
@@ -121,6 +124,15 @@ function HistoryPage() {
     });
   }, [orders, filters]);
 
+  const toggleOrder = (orderId: string) => {
+    setExpandedOrderIds((current) => {
+      const next = new Set(current);
+      if (next.has(orderId)) next.delete(orderId);
+      else next.add(orderId);
+      return next;
+    });
+  };
+
   return (
     <>
       <AdminPageHeader
@@ -184,53 +196,76 @@ function HistoryPage() {
               <span>Total</span>
               <span>Acciones</span>
             </div>
-            {filtered.map((order) => (
-              <div
-                key={order.id}
-                className="grid gap-3 border-b border-white/10 p-3 last:border-0 lg:grid-cols-[120px_1fr_120px_120px_120px] lg:items-center"
-              >
-                <span className="font-mono text-sm text-orange-300">{shortOrderId(order.id)}</span>
-                <div>
-                  <p className="font-semibold text-white">{order.customer_name}</p>
-                  <p className="text-xs text-zinc-500">
-                    {order.customer_phone} - {formatDateTime(order.created_at)}
-                  </p>
+            {filtered.map((order) => {
+              const expanded = expandedOrderIds.has(order.id);
+              return (
+                <div key={order.id} className="border-b border-white/10 last:border-0">
+                  <div className="grid gap-3 p-3 lg:grid-cols-[120px_1fr_120px_120px_120px] lg:items-center">
+                    <button
+                      type="button"
+                      onClick={() => toggleOrder(order.id)}
+                      className="flex items-center gap-2 text-left font-mono text-sm text-orange-300 hover:text-orange-200"
+                      aria-expanded={expanded}
+                    >
+                      <ChevronDown
+                        className={`h-4 w-4 shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`}
+                      />
+                      {shortOrderId(order.id)}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleOrder(order.id)}
+                      className="text-left"
+                    >
+                      <p className="font-semibold text-white">{order.customer_name}</p>
+                      <p className="text-xs text-zinc-500">
+                        {order.customer_phone} - {formatDateTime(order.created_at)}
+                      </p>
+                    </button>
+                    {canEditOrderStatus(order) ? (
+                      <AdminSelect
+                        value={order.status}
+                        onChange={(event) => updateStatus(order, event.target.value as OrderStatus)}
+                      >
+                        {Object.keys(ORDER_STATUS_LABEL).map((status) => (
+                          <option key={status} value={status}>
+                            {ORDER_STATUS_LABEL[status as OrderStatus]}
+                          </option>
+                        ))}
+                      </AdminSelect>
+                    ) : (
+                      <span
+                        className={`w-fit rounded-full border px-2 py-1 text-xs ${ORDER_STATUS_CLASS[order.status]}`}
+                        title="No se puede modificar porque la caja de este pedido ya fue cerrada."
+                      >
+                        {ORDER_STATUS_LABEL[order.status]}
+                      </span>
+                    )}
+                    <span className="font-display text-xl">{formatMoney(order.total)}</span>
+                    <div className="flex flex-wrap gap-2">
+                      <AdminButton variant="ghost" onClick={() => toggleOrder(order.id)}>
+                        <ChevronDown
+                          className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}
+                        />
+                        <span className="sr-only">Ver detalle</span>
+                      </AdminButton>
+                      <AdminButton
+                        variant="ghost"
+                        onClick={() => printComanda(order, DEFAULT_SETTINGS)}
+                      >
+                        <Printer className="h-4 w-4" />
+                      </AdminButton>
+                      {order.payment_receipt_url && (
+                        <a href={order.payment_receipt_url} target="_blank" rel="noreferrer">
+                          <AdminButton variant="ghost">Comprobante</AdminButton>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                  {expanded && <HistoricalOrderDetail order={order} />}
                 </div>
-                {canEditOrderStatus(order) ? (
-                  <AdminSelect
-                    value={order.status}
-                    onChange={(event) => updateStatus(order, event.target.value as OrderStatus)}
-                  >
-                    {Object.keys(ORDER_STATUS_LABEL).map((status) => (
-                      <option key={status} value={status}>
-                        {ORDER_STATUS_LABEL[status as OrderStatus]}
-                      </option>
-                    ))}
-                  </AdminSelect>
-                ) : (
-                  <span
-                    className={`w-fit rounded-full border px-2 py-1 text-xs ${ORDER_STATUS_CLASS[order.status]}`}
-                    title="No se puede modificar porque la caja de este pedido ya fue cerrada."
-                  >
-                    {ORDER_STATUS_LABEL[order.status]}
-                  </span>
-                )}
-                <span className="font-display text-xl">{formatMoney(order.total)}</span>
-                <div className="flex flex-wrap gap-2">
-                  <AdminButton
-                    variant="ghost"
-                    onClick={() => printComanda(order, DEFAULT_SETTINGS)}
-                  >
-                    <Printer className="h-4 w-4" />
-                  </AdminButton>
-                  {order.payment_receipt_url && (
-                    <a href={order.payment_receipt_url} target="_blank" rel="noreferrer">
-                      <AdminButton variant="ghost">Comprobante</AdminButton>
-                    </a>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
             {filtered.length === 0 && (
               <div className="p-10 text-center text-zinc-500">No hay pedidos con esos filtros.</div>
             )}
@@ -286,6 +321,92 @@ function HistoryPage() {
         onClose={() => setCashSummary(null)}
       />
     </>
+  );
+}
+
+function HistoricalOrderDetail({ order }: { order: AdminOrder }) {
+  const paymentLabel =
+    order.payment_method === "efectivo"
+      ? "Efectivo"
+      : order.payment_method === "transferencia"
+        ? "Transferencia"
+        : order.payment_method === "dividido"
+          ? "Pago dividido"
+          : "A confirmar";
+
+  return (
+    <div className="border-t border-white/10 bg-black/30 p-4 lg:pl-[135px]">
+      <div className="grid gap-2 text-sm text-zinc-300 sm:grid-cols-2 xl:grid-cols-4">
+        <p className="flex items-center gap-2">
+          <Phone className="h-4 w-4 text-orange-300" /> {order.customer_phone}
+        </p>
+        <p className="flex items-start gap-2">
+          {order.delivery_method === "delivery" ? (
+            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-orange-300" />
+          ) : (
+            <Package className="mt-0.5 h-4 w-4 shrink-0 text-orange-300" />
+          )}
+          {order.delivery_method === "delivery"
+            ? order.customer_address || "Delivery sin dirección"
+            : "Retiro en el local"}
+        </p>
+        <p>
+          <span className="text-zinc-500">Pago:</span> {paymentLabel}
+          {order.payment_method === "dividido" &&
+            ` · ${formatMoney(Number(order.payment_cash_amount || 0))} efectivo + ${formatMoney(Number(order.payment_transfer_amount || 0))} transferencia`}
+        </p>
+        <p>
+          <span className="text-zinc-500">Entrega:</span>{" "}
+          {formatDeliveryTime(order.delivery_time) || "Sin horario"}
+        </p>
+      </div>
+
+      <div className="mt-4 grid gap-3 xl:grid-cols-2">
+        {order.order_items?.length ? (
+          order.order_items.map((item) => (
+            <div key={item.id} className="rounded-md border border-white/10 bg-zinc-900/70 p-3">
+              <div className="flex items-start justify-between gap-3">
+                <p className="font-semibold text-white">
+                  {item.quantity}× {item.product_name}
+                </p>
+                <p className="shrink-0 text-sm text-zinc-300">
+                  {formatMoney(Number(item.unit_price) * item.quantity)}
+                </p>
+              </div>
+              {item.removed_ingredients?.length ? (
+                <p className="mt-2 text-xs text-red-200">
+                  Sin: {formatIngredientList(item.removed_ingredients)}
+                </p>
+              ) : null}
+              {item.added_ingredients?.length ? (
+                <p className="mt-1 text-xs text-orange-100">
+                  Extras: {formatIngredientList(item.added_ingredients)}
+                </p>
+              ) : null}
+              {item.custom_extras?.length ? (
+                <p className="mt-1 text-xs text-emerald-200">
+                  Extras libres:{" "}
+                  {item.custom_extras
+                    .map((extra) => `${extra.name} (${formatMoney(extra.price)})`)
+                    .join(", ")}
+                </p>
+              ) : null}
+              {item.item_notes ? (
+                <p className="mt-1 text-xs text-yellow-100">Obs: {item.item_notes}</p>
+              ) : null}
+            </div>
+          ))
+        ) : (
+          <p className="text-sm text-zinc-500">Este pedido no tiene ítems detallados.</p>
+        )}
+      </div>
+
+      {order.notes && (
+        <p className="mt-3 rounded-md border border-yellow-400/20 bg-yellow-500/10 p-3 text-sm text-yellow-100">
+          Notas: {order.notes}
+        </p>
+      )}
+    </div>
   );
 }
 
