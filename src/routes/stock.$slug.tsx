@@ -1,11 +1,11 @@
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ArrowLeft,
   ClipboardCheck,
   LoaderCircle,
   LockKeyhole,
   LogIn,
-  LogOut,
   Mail,
   Minus,
   Plus,
@@ -60,12 +60,14 @@ function StockControl() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const loadingRef = useRef(false);
 
   const load = useCallback(async () => {
     if (loadingRef.current) return;
     loadingRef.current = true;
+    setLoading(true);
     try {
       const { data } = await supabase.auth.getSession();
       if (!data.session) {
@@ -80,11 +82,13 @@ function StockControl() {
       toast.error(error.status === 404 ? "No tenes acceso a esta lista." : error.message);
     } finally {
       loadingRef.current = false;
+      setLoading(false);
     }
   }, [slug]);
   useEffect(() => {
     setAuth(null);
     setPayload(null);
+    setLoading(true);
     load();
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
@@ -134,7 +138,7 @@ function StockControl() {
     }
   };
 
-  if (auth === null)
+  if (auth === null || (auth && loading && !payload))
     return (
       <Shell>
         <p>Verificando acceso...</p>
@@ -174,11 +178,14 @@ function StockControl() {
           <p className="text-sm text-zinc-400">{list.description}</p>
         </div>
         <button
-          onClick={() => supabase.auth.signOut()}
+          onClick={() => {
+            if (window.history.length > 1) window.history.back();
+            else window.location.assign("/admin/stock");
+          }}
           className="flex min-h-11 shrink-0 items-center gap-2 rounded-lg px-2 text-sm text-zinc-400"
         >
-          <LogOut className="h-4 w-4" />
-          Salir
+          <ArrowLeft className="h-4 w-4" />
+          Volver a stock
         </button>
       </header>
       <div
