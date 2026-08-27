@@ -13,6 +13,8 @@ const editOrderSchema = z.object({
   customerPhone: z.string().trim().max(40),
   deliveryMethod: z.enum(["pickup", "delivery"]),
   deliveryFee: z.number().finite().nonnegative().default(0),
+  discountType: z.enum(["percent", "fixed"]).default("percent"),
+  discountValue: z.number().finite().nonnegative().default(0),
   customerAddress: z.string().trim().max(255).optional(),
   deliveryTime: z
     .string()
@@ -123,7 +125,12 @@ export const Route = createFileRoute("/api/admin/orders/edit")({
         }, 0);
         const deliveryFee =
           input.deliveryMethod === "delivery" ? Number(input.deliveryFee) || 0 : 0;
-        const total = subtotal + deliveryFee;
+        const rawDiscount =
+          input.discountType === "percent"
+            ? subtotal * (Math.min(100, input.discountValue) / 100)
+            : input.discountValue;
+        const discountAmount = Math.min(subtotal, Math.max(0, rawDiscount));
+        const total = Math.max(0, subtotal - discountAmount + deliveryFee);
 
         if (input.paymentMethod === "dividido") {
           const cash = Number(input.paymentCashAmount || 0);
@@ -145,6 +152,10 @@ export const Route = createFileRoute("/api/admin/orders/edit")({
             input.paymentMethod === "dividido" ? Number(input.paymentCashAmount || 0) : null,
           payment_transfer_amount:
             input.paymentMethod === "dividido" ? Number(input.paymentTransferAmount || 0) : null,
+          discount_type: input.discountType,
+          discount_value: input.discountValue,
+          discount_amount: discountAmount,
+          delivery_fee: deliveryFee,
           notes: input.notes?.trim() || null,
           total,
         };

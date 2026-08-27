@@ -199,6 +199,10 @@ export const Route = createFileRoute("/api/admin/local-sale")({
           payment_transfer_amount:
             input.paymentMethod === "dividido" ? Number(input.paymentTransferAmount || 0) : null,
           payment_status: "approved",
+          discount_type: input.discountType,
+          discount_value: discountValue,
+          discount_amount: safeDiscount,
+          delivery_fee: deliveryFee,
           notes: orderNotes || null,
           status: "confirmed",
           total,

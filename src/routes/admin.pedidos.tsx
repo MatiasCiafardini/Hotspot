@@ -70,6 +70,7 @@ const ACTIONABLE_ORDER_STATUSES: OrderStatus[] = [
 ];
 type DeliveryMethod = "pickup" | "delivery";
 type PaymentMethod = "efectivo" | "transferencia" | "dividido";
+type DiscountType = "percent" | "fixed";
 
 type EditableOrderItem = {
   id: string;
@@ -126,6 +127,20 @@ function itemUnitPrice(item: EditableOrderItem, productsById: Map<string, Produc
       0,
     )
   );
+}
+
+function legacyMoneyFromNotes(notes: string | null, label: string) {
+  const match = notes?.match(new RegExp(`${label}:\\s*\\$?\\s*([\\d.]+(?:,\\d{1,2})?)`, "i"));
+  if (!match?.[1]) return null;
+  const value = Number(match[1].replace(/\./g, "").replace(",", "."));
+  return Number.isFinite(value) ? value : null;
+}
+
+function legacyDiscountPercent(notes: string | null) {
+  const match = notes?.match(/Descuento\s+([\d.,]+)%/i);
+  if (!match?.[1]) return null;
+  const value = Number(match[1].replace(",", "."));
+  return Number.isFinite(value) ? value : null;
 }
 
 function OrdersPage() {
@@ -570,7 +585,25 @@ function OrderEditDialog({
       ),
     [order.order_items],
   );
-  const initialDeliveryFee = Math.max(0, Number(order.total || 0) - initialItemsSubtotal);
+  const legacyDeliveryFee = legacyMoneyFromNotes(order.notes, "Envio") ?? 0;
+  const initialDeliveryFee = Math.max(0, Number(order.delivery_fee ?? legacyDeliveryFee));
+  const legacyPercent = legacyDiscountPercent(order.notes);
+  const inferredDiscount = Math.max(
+    0,
+    initialItemsSubtotal + initialDeliveryFee - Number(order.total || 0),
+  );
+  const initialDiscountType: DiscountType =
+    order.discount_type === "fixed" || order.discount_type === "percent"
+      ? order.discount_type
+      : legacyPercent != null
+        ? "percent"
+        : "fixed";
+  const initialDiscountValue =
+    order.discount_value != null
+      ? Number(order.discount_value)
+      : legacyPercent != null
+        ? legacyPercent
+        : inferredDiscount;
   const [customerName, setCustomerName] = useState(order.customer_name);
   const [customerPhone, setCustomerPhone] = useState(order.customer_phone);
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>(
@@ -580,6 +613,8 @@ function OrderEditDialog({
   const [deliveryFee, setDeliveryFee] = useState(
     order.delivery_method === "delivery" ? initialDeliveryFee : 0,
   );
+  const [discountType, setDiscountType] = useState<DiscountType>(initialDiscountType);
+  const [discountValue, setDiscountValue] = useState(initialDiscountValue);
   const [deliveryTime, setDeliveryTime] = useState(formatDeliveryTime(order.delivery_time) ?? "");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
     order.payment_method === "transferencia" || order.payment_method === "dividido"
@@ -604,7 +639,12 @@ function OrderEditDialog({
     [items, productsById],
   );
   const deliveryAmount = deliveryMethod === "delivery" ? Math.max(0, Number(deliveryFee) || 0) : 0;
-  const total = subtotal + deliveryAmount;
+  const rawDiscount =
+    discountType === "percent"
+      ? subtotal * (Math.min(100, Math.max(0, Number(discountValue) || 0)) / 100)
+      : Number(discountValue) || 0;
+  const discountAmount = Math.min(subtotal, Math.max(0, rawDiscount));
+  const total = Math.max(0, subtotal - discountAmount + deliveryAmount);
 
   const updateItem = (itemId: string, patch: Partial<EditableOrderItem>) => {
     if (patch.productId && itemId === newItemId) setNewItemId(null);
@@ -669,6 +709,8 @@ function OrderEditDialog({
           deliveryMethod,
           customerAddress: deliveryMethod === "delivery" ? cleanAddress : "",
           deliveryFee: deliveryAmount,
+          discountType,
+          discountValue: Math.max(0, Number(discountValue) || 0),
           deliveryTime: deliveryTime === ":" ? "" : deliveryTime,
           paymentMethod,
           paymentCashAmount: paymentMethod === "dividido" ? paymentCashAmount : null,
@@ -733,6 +775,29 @@ function OrderEditDialog({
                 <AdminInput
                   value={customerPhone}
                   onChange={(event) => setCustomerPhone(event.target.value)}
+                />
+              </AdminField>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-[180px_1fr]">
+              <AdminField label="Tipo de descuento">
+                <AdminSelect
+                  value={discountType}
+                  onChange={(event) => setDiscountType(event.target.value as DiscountType)}
+                >
+                  <option value="percent">Porcentaje (%)</option>
+                  <option value="fixed">Importe ($)</option>
+                </AdminSelect>
+              </AdminField>
+              <AdminField label={discountType === "percent" ? "Descuento (%)" : "Descuento ($)"}>
+                <AdminInput
+                  type="number"
+                  min={0}
+                  max={discountType === "percent" ? 100 : undefined}
+                  step={discountType === "percent" ? 0.01 : 1}
+                  value={discountValue || ""}
+                  onChange={(event) => setDiscountValue(Number(event.target.value))}
+                  placeholder="0"
                 />
               </AdminField>
             </div>
@@ -853,6 +918,12 @@ function OrderEditDialog({
                 <span>Items</span>
                 <span>{formatMoney(subtotal)}</span>
               </div>
+              {discountAmount > 0 && (
+                <div className="flex items-center justify-between text-emerald-300">
+                  <span>Descuento</span>
+                  <span>-{formatMoney(discountAmount)}</span>
+                </div>
+              )}
               {deliveryMethod === "delivery" && (
                 <div className="flex items-center justify-between text-zinc-400">
                   <span>Envio</span>
@@ -860,7 +931,7 @@ function OrderEditDialog({
                 </div>
               )}
             </div>
-            <p className="mt-3 text-xs text-zinc-500">Productos, extras y envio.</p>
+            <p className="mt-3 text-xs text-zinc-500">Productos, descuento, extras y envio.</p>
           </aside>
         </div>
 

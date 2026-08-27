@@ -45,6 +45,10 @@ export type AdminOrder = {
   payment_transfer_amount?: number | null;
   payment_status?: PaymentStatus | null;
   payment_receipt_url?: string | null;
+  discount_type?: "percent" | "fixed" | null;
+  discount_value?: number | null;
+  discount_amount?: number | null;
+  delivery_fee?: number | null;
   notes: string | null;
   total: number;
   status: OrderStatus;
