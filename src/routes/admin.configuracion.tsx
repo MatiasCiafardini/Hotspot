@@ -350,7 +350,8 @@ function SettingsPage() {
                   <option value="">Automatica (primera hamburguesa disponible)</option>
                   {heroProducts.map((product) => (
                     <option key={product.id} value={product.id}>
-                      {product.name}{product.available ? "" : " (pausada)"}
+                      {product.name}
+                      {product.available ? "" : " (pausada)"}
                     </option>
                   ))}
                 </select>

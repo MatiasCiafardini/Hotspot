@@ -382,7 +382,7 @@ function LocalSalePage() {
                 placeholder="Buscar por nombre o ingrediente"
               />
             </label>
-            <div className="flex gap-2 overflow-x-auto pb-1">
+            <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <FilterButton
                 active={categoryFilter === "all"}
                 onClick={() => setCategoryFilter("all")}
@@ -600,7 +600,7 @@ function FilterButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "whitespace-nowrap rounded-md border px-3 py-2 text-sm font-bold transition-colors",
+        "min-h-11 whitespace-nowrap rounded-md border px-3 py-2 text-sm font-bold transition-colors",
         active
           ? "border-orange-400 bg-orange-500 text-black"
           : "border-white/10 bg-zinc-900 text-zinc-300 hover:border-orange-400/40",

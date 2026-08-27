@@ -5,12 +5,18 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
+    "dev:staging": "node scripts/dev-staging.mjs",
     "build": "vite build && node scripts/ensure-preview-server.mjs",
     "build:dev": "vite build --mode development",
+    "build:staging": "node scripts/build-staging.mjs",
     "preview": "node scripts/ensure-preview-server.mjs && vite preview",
+    "preview:staging": "node scripts/preview-staging.mjs",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "push:generate-keys": "web-push generate-vapid-keys"
+    "push:generate-keys": "web-push generate-vapid-keys",
+    "staging:start": "npx supabase start && node scripts/sync-staging-env.mjs",
+    "staging:reset": "npx supabase db reset --local",
+    "staging:test": "powershell -ExecutionPolicy Bypass -File scripts/setup-stock-staging.ps1"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
@@ -57,6 +63,7 @@
     "input-otp": "^1.4.2",
     "jose": "^6.2.3",
     "lucide-react": "^0.575.0",
+    "qrcode": "^1.5.4",
     "react": "^19.2.0",
     "react-day-picker": "^9.14.0",
     "react-dom": "^19.2.0",
@@ -76,6 +83,7 @@
     "@eslint/js": "^9.32.0",
     "@lovable.dev/vite-tanstack-config": "^1.4.0",
     "@types/node": "^22.16.5",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@types/web-push": "^3.6.4",

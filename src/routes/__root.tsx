@@ -82,8 +82,9 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  const isAdmin = useRouterState({
-    select: (state) => state.location.pathname.startsWith("/admin"),
+  const isOperational = useRouterState({
+    select: (state) =>
+      state.location.pathname.startsWith("/admin") || state.location.pathname.startsWith("/stock/"),
   });
 
   return (
@@ -91,12 +92,12 @@ function RootComponent() {
       <CustomerAuthProvider>
         <RouteTransitionProvider>
           <div className="flex min-h-screen flex-col">
-            {!isAdmin && <Header />}
-            <main className={!isAdmin ? "flex-1 pt-[73px] md:pt-[81px]" : "flex-1"}>
+            {!isOperational && <Header />}
+            <main className={!isOperational ? "flex-1 pt-[73px] md:pt-[81px]" : "flex-1"}>
               <Outlet />
             </main>
-            {!isAdmin && <Footer />}
-            {!isAdmin && <CartDrawer />}
+            {!isOperational && <Footer />}
+            {!isOperational && <CartDrawer />}
             <Toaster />
           </div>
         </RouteTransitionProvider>

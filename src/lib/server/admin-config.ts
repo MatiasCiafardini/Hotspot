@@ -22,16 +22,15 @@ export async function listAdminConfig() {
     { data: settings, error: settingsError },
     { data: categories, error: categoriesError },
     { data: products, error: productsError },
-  ] =
-    await Promise.all([
-      (supabaseAdmin as any).from("store_settings").select("*").limit(1).maybeSingle(),
-      (supabaseAdmin as any).from("product_categories").select("*").order("sort_order"),
-      (supabaseAdmin as any)
-        .from("products")
-        .select("id, name, category, image_url, available, sort_order")
-        .eq("category", "burgers")
-        .order("sort_order"),
-    ]);
+  ] = await Promise.all([
+    (supabaseAdmin as any).from("store_settings").select("*").limit(1).maybeSingle(),
+    (supabaseAdmin as any).from("product_categories").select("*").order("sort_order"),
+    (supabaseAdmin as any)
+      .from("products")
+      .select("id, name, category, image_url, available, sort_order")
+      .eq("category", "burgers")
+      .order("sort_order"),
+  ]);
 
   if (settingsError) throw settingsError;
   if (categoriesError) throw categoriesError;

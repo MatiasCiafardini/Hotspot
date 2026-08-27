@@ -196,19 +196,6 @@ function ProductsPage() {
     setExtraIngredientRows((current) => current.filter((row) => row.id !== rowId));
   };
 
-  const syncBurgerStock = async () => {
-    const response = await fetch("/api/admin/stock/sync-burgers", {
-      method: "POST",
-      credentials: "include",
-    });
-    const data = await response.json().catch(() => null);
-    if (!response.ok) {
-      toast.error(data?.error ?? "No se pudo sincronizar el stock.");
-      return null;
-    }
-    return data as { created: number; products: number; ingredients: number };
-  };
-
   const importRealMenu = async () => {
     setImportingMenu(true);
 
@@ -250,12 +237,7 @@ function ProductsPage() {
       return;
     }
 
-    const stockSync = await syncBurgerStock();
-    toast.success(
-      stockSync?.created
-        ? `Menu real cargado. Stock sincronizado: ${stockSync.created} item(s) nuevos.`
-        : "Menu real cargado en gestion de productos.",
-    );
+    toast.success("Menu real cargado en gestion de productos.");
     setImportingMenu(false);
     load();
   };
@@ -289,12 +271,7 @@ function ProductsPage() {
       error = retry.error;
     }
     if (error) return toast.error("No se pudo guardar el producto.");
-    const stockSync = payload.category === "burgers" ? await syncBurgerStock() : null;
-    toast.success(
-      stockSync?.created
-        ? `Producto guardado. Stock sincronizado: ${stockSync.created} item(s) nuevos.`
-        : "Producto guardado.",
-    );
+    toast.success("Producto guardado.");
     setEditing(newBlank());
     setIngredientsText("");
     setExtraIngredientRows([]);
@@ -388,7 +365,7 @@ function ProductsPage() {
       <AdminPageHeader
         eyebrow="Catalogo"
         title="Productos"
-        description="Menu, precios, imagenes, stock e ingredientes para venta y pedidos online."
+        description="Menu, precios, imagenes e ingredientes para venta. El inventario manual se gestiona por separado en Stock."
         action={
           <div className="flex flex-wrap gap-2">
             {!hasRealMenu && (
@@ -409,10 +386,12 @@ function ProductsPage() {
             key={product.id}
             className="rounded-lg border border-white/10 bg-zinc-900/70 p-4"
           >
-            <div className="flex items-start justify-between gap-3">
-              <div>
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
                 <p className="text-xs uppercase text-orange-300">{product.category}</p>
-                <h2 className="font-display text-3xl">{product.name}</h2>
+                <h2 className="font-display break-words text-2xl leading-none sm:text-3xl">
+                  {product.name}
+                </h2>
                 <p className="mt-1 text-sm text-zinc-400">{product.description}</p>
               </div>
               <button
@@ -421,7 +400,7 @@ function ProductsPage() {
                 disabled={togglingProductId === product.id}
                 aria-label={`${product.available ? "Desactivar" : "Activar"} ${product.name}`}
                 aria-pressed={product.available}
-                className={`inline-flex min-h-9 w-28 shrink-0 items-center justify-center gap-2 rounded-md border px-3 py-1.5 text-sm font-semibold transition-colors duration-200 disabled:cursor-wait ${
+                className={`inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-md border px-3 py-1.5 text-sm font-semibold transition-colors duration-200 disabled:cursor-wait sm:w-28 ${
                   product.available
                     ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
                     : "border-red-400/40 bg-red-500/10 text-red-300 hover:bg-red-500/20"
@@ -587,7 +566,7 @@ function ProductsPage() {
                     onChange={(e) => setEditing({ ...editing, badge: e.target.value })}
                   />
                 </AdminField>
-                <AdminField label="Stock disponible">
+                <AdminField label="Disponibilidad en el menu (no es inventario)">
                   <AdminInput
                     type="number"
                     value={editing.stock_quantity || 0}

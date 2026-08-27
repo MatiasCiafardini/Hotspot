@@ -58,6 +58,10 @@ export type StockItem = {
   type: "product" | "ingredient";
   quantity: number;
   low_stock_threshold: number;
+  target_stock?: number | null;
+  unit?: string;
+  sku?: string | null;
+  allow_negative?: boolean;
   available: boolean;
   updated_at?: string;
 };

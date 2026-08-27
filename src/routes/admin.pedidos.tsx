@@ -68,7 +68,6 @@ const ACTIONABLE_ORDER_STATUSES: OrderStatus[] = [
   "pending_payment",
   "pending_confirmation",
 ];
-const AUTO_REFRESH_MS = 4000;
 type DeliveryMethod = "pickup" | "delivery";
 type PaymentMethod = "efectivo" | "transferencia" | "dividido";
 
@@ -210,10 +209,6 @@ function OrdersPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "order_items" }, () => load())
       .subscribe();
 
-    const intervalId = window.setInterval(() => {
-      load({ notifyNew: true, silentErrors: true });
-    }, AUTO_REFRESH_MS);
-
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         load({ notifyNew: true, silentErrors: true });
@@ -222,7 +217,6 @@ function OrdersPage() {
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      window.clearInterval(intervalId);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       supabase.removeChannel(channel);
     };

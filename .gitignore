@@ -16,6 +16,13 @@ dist-ssr
 .nitro
 *.local
 .env
+.env.staging.local
+supabase/.temp/
+supabase/.branches/
+.playwright-cli/
+artifacts/
+output/
+test-results/
 
 # Wrangler / Cloudflare
 .wrangler/

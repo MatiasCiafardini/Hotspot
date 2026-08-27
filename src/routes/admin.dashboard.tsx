@@ -36,7 +36,6 @@ export const Route = createFileRoute("/admin/dashboard")({
   component: Dashboard,
 });
 
-const AUTO_REFRESH_MS = 4000;
 const CLOSABLE_STATUSES = ["delivered", "rejected", "cancelled"];
 
 function Dashboard() {
@@ -75,15 +74,12 @@ function Dashboard() {
       .on("postgres_changes", { event: "*", schema: "public", table: "order_items" }, load)
       .subscribe();
 
-    const intervalId = window.setInterval(load, AUTO_REFRESH_MS);
-
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") load();
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      window.clearInterval(intervalId);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       supabase.removeChannel(channel);
     };
@@ -237,7 +233,7 @@ function Dashboard() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <StatCard title="Pedidos pendientes" value={stats.pending} Icon={Clock} tone="orange" />
         <StatCard title="Confirmados hoy" value={stats.confirmedToday} Icon={CheckCircle2} />
         <StatCard title="Vendido hoy" value={formatMoney(stats.revenueToday)} Icon={DollarSign} />

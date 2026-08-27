@@ -68,9 +68,9 @@ function HomePage() {
               initial={{ opacity: 0, y: 20, rotate: -2 }}
               animate={{ opacity: 1, y: 0, rotate: 0 }}
               transition={{ delay: 0.15, type: "spring", stiffness: 200, damping: 18 }}
-              className="max-w-full break-words font-display text-[2.75rem] leading-[0.92] min-[390px]:text-[3rem] sm:text-7xl md:text-8xl md:leading-[0.85]"
+              className="max-w-full break-words font-display text-[clamp(1.9rem,8.8vw,3rem)] leading-[0.92] sm:text-7xl md:text-8xl md:leading-[0.85]"
             >
-              Hamburguesas
+              <span className="whitespace-nowrap">Hamburguesas</span>
               <br />
               <span className="inline-block bg-foreground px-3 text-background -rotate-1">
                 con bronca

@@ -20,6 +20,7 @@ import { Route as ContactoRouteImport } from './routes/contacto'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as StockSlugRouteImport } from './routes/stock.$slug'
 import { Route as AdminVentaLocalRouteImport } from './routes/admin.venta-local'
 import { Route as AdminStockRouteImport } from './routes/admin.stock'
 import { Route as AdminProductosRouteImport } from './routes/admin.productos'
@@ -30,6 +31,7 @@ import { Route as AdminConfiguracionRouteImport } from './routes/admin.configura
 import { Route as ApiStoreOrdersRouteImport } from './routes/api.store.orders'
 import { Route as ApiStoreMenuRouteImport } from './routes/api.store.menu'
 import { Route as ApiAdminLocalSaleRouteImport } from './routes/api.admin.local-sale'
+import { Route as ApiAdminInventoryRouteImport } from './routes/api.admin.inventory'
 import { Route as ApiAdminDayRouteImport } from './routes/api.admin.day'
 import { Route as ApiAdminConfigRouteImport } from './routes/api.admin.config'
 import { Route as ApiAdminCategoriesRouteImport } from './routes/api.admin.categories'
@@ -42,7 +44,6 @@ import { Route as ApiStoreAuthLogoutRouteImport } from './routes/api.store.auth.
 import { Route as ApiStoreAuthLoginRouteImport } from './routes/api.store.auth.login'
 import { Route as ApiStoreAuthGoogleRouteImport } from './routes/api.store.auth.google'
 import { Route as ApiStoreAuthForgotPasswordRouteImport } from './routes/api.store.auth.forgot-password'
-import { Route as ApiAdminStockSyncBurgersRouteImport } from './routes/api.admin.stock.sync-burgers'
 import { Route as ApiAdminPushSubscriptionsRouteImport } from './routes/api.admin.push.subscriptions'
 import { Route as ApiAdminPushConfigRouteImport } from './routes/api.admin.push.config'
 import { Route as ApiAdminOrdersStatusRouteImport } from './routes/api.admin.orders.status'
@@ -103,6 +104,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StockSlugRoute = StockSlugRouteImport.update({
+  id: '/stock/$slug',
+  path: '/stock/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminVentaLocalRoute = AdminVentaLocalRouteImport.update({
   id: '/venta-local',
   path: '/venta-local',
@@ -151,6 +157,11 @@ const ApiStoreMenuRoute = ApiStoreMenuRouteImport.update({
 const ApiAdminLocalSaleRoute = ApiAdminLocalSaleRouteImport.update({
   id: '/api/admin/local-sale',
   path: '/api/admin/local-sale',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminInventoryRoute = ApiAdminInventoryRouteImport.update({
+  id: '/api/admin/inventory',
+  path: '/api/admin/inventory',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminDayRoute = ApiAdminDayRouteImport.update({
@@ -215,12 +226,6 @@ const ApiStoreAuthForgotPasswordRoute =
     path: '/api/store/auth/forgot-password',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiAdminStockSyncBurgersRoute =
-  ApiAdminStockSyncBurgersRouteImport.update({
-    id: '/api/admin/stock/sync-burgers',
-    path: '/api/admin/stock/sync-burgers',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiAdminPushSubscriptionsRoute =
   ApiAdminPushSubscriptionsRouteImport.update({
     id: '/api/admin/push/subscriptions',
@@ -262,9 +267,11 @@ export interface FileRoutesByFullPath {
   '/admin/productos': typeof AdminProductosRoute
   '/admin/stock': typeof AdminStockRoute
   '/admin/venta-local': typeof AdminVentaLocalRoute
+  '/stock/$slug': typeof StockSlugRoute
   '/api/admin/categories': typeof ApiAdminCategoriesRoute
   '/api/admin/config': typeof ApiAdminConfigRoute
   '/api/admin/day': typeof ApiAdminDayRoute
+  '/api/admin/inventory': typeof ApiAdminInventoryRoute
   '/api/admin/local-sale': typeof ApiAdminLocalSaleRoute
   '/api/store/menu': typeof ApiStoreMenuRoute
   '/api/store/orders': typeof ApiStoreOrdersRoute
@@ -272,7 +279,6 @@ export interface FileRoutesByFullPath {
   '/api/admin/orders/status': typeof ApiAdminOrdersStatusRoute
   '/api/admin/push/config': typeof ApiAdminPushConfigRoute
   '/api/admin/push/subscriptions': typeof ApiAdminPushSubscriptionsRoute
-  '/api/admin/stock/sync-burgers': typeof ApiAdminStockSyncBurgersRoute
   '/api/store/auth/forgot-password': typeof ApiStoreAuthForgotPasswordRoute
   '/api/store/auth/google': typeof ApiStoreAuthGoogleRoute
   '/api/store/auth/login': typeof ApiStoreAuthLoginRoute
@@ -302,9 +308,11 @@ export interface FileRoutesByTo {
   '/admin/productos': typeof AdminProductosRoute
   '/admin/stock': typeof AdminStockRoute
   '/admin/venta-local': typeof AdminVentaLocalRoute
+  '/stock/$slug': typeof StockSlugRoute
   '/api/admin/categories': typeof ApiAdminCategoriesRoute
   '/api/admin/config': typeof ApiAdminConfigRoute
   '/api/admin/day': typeof ApiAdminDayRoute
+  '/api/admin/inventory': typeof ApiAdminInventoryRoute
   '/api/admin/local-sale': typeof ApiAdminLocalSaleRoute
   '/api/store/menu': typeof ApiStoreMenuRoute
   '/api/store/orders': typeof ApiStoreOrdersRoute
@@ -312,7 +320,6 @@ export interface FileRoutesByTo {
   '/api/admin/orders/status': typeof ApiAdminOrdersStatusRoute
   '/api/admin/push/config': typeof ApiAdminPushConfigRoute
   '/api/admin/push/subscriptions': typeof ApiAdminPushSubscriptionsRoute
-  '/api/admin/stock/sync-burgers': typeof ApiAdminStockSyncBurgersRoute
   '/api/store/auth/forgot-password': typeof ApiStoreAuthForgotPasswordRoute
   '/api/store/auth/google': typeof ApiStoreAuthGoogleRoute
   '/api/store/auth/login': typeof ApiStoreAuthLoginRoute
@@ -343,9 +350,11 @@ export interface FileRoutesById {
   '/admin/productos': typeof AdminProductosRoute
   '/admin/stock': typeof AdminStockRoute
   '/admin/venta-local': typeof AdminVentaLocalRoute
+  '/stock/$slug': typeof StockSlugRoute
   '/api/admin/categories': typeof ApiAdminCategoriesRoute
   '/api/admin/config': typeof ApiAdminConfigRoute
   '/api/admin/day': typeof ApiAdminDayRoute
+  '/api/admin/inventory': typeof ApiAdminInventoryRoute
   '/api/admin/local-sale': typeof ApiAdminLocalSaleRoute
   '/api/store/menu': typeof ApiStoreMenuRoute
   '/api/store/orders': typeof ApiStoreOrdersRoute
@@ -353,7 +362,6 @@ export interface FileRoutesById {
   '/api/admin/orders/status': typeof ApiAdminOrdersStatusRoute
   '/api/admin/push/config': typeof ApiAdminPushConfigRoute
   '/api/admin/push/subscriptions': typeof ApiAdminPushSubscriptionsRoute
-  '/api/admin/stock/sync-burgers': typeof ApiAdminStockSyncBurgersRoute
   '/api/store/auth/forgot-password': typeof ApiStoreAuthForgotPasswordRoute
   '/api/store/auth/google': typeof ApiStoreAuthGoogleRoute
   '/api/store/auth/login': typeof ApiStoreAuthLoginRoute
@@ -385,9 +393,11 @@ export interface FileRouteTypes {
     | '/admin/productos'
     | '/admin/stock'
     | '/admin/venta-local'
+    | '/stock/$slug'
     | '/api/admin/categories'
     | '/api/admin/config'
     | '/api/admin/day'
+    | '/api/admin/inventory'
     | '/api/admin/local-sale'
     | '/api/store/menu'
     | '/api/store/orders'
@@ -395,7 +405,6 @@ export interface FileRouteTypes {
     | '/api/admin/orders/status'
     | '/api/admin/push/config'
     | '/api/admin/push/subscriptions'
-    | '/api/admin/stock/sync-burgers'
     | '/api/store/auth/forgot-password'
     | '/api/store/auth/google'
     | '/api/store/auth/login'
@@ -425,9 +434,11 @@ export interface FileRouteTypes {
     | '/admin/productos'
     | '/admin/stock'
     | '/admin/venta-local'
+    | '/stock/$slug'
     | '/api/admin/categories'
     | '/api/admin/config'
     | '/api/admin/day'
+    | '/api/admin/inventory'
     | '/api/admin/local-sale'
     | '/api/store/menu'
     | '/api/store/orders'
@@ -435,7 +446,6 @@ export interface FileRouteTypes {
     | '/api/admin/orders/status'
     | '/api/admin/push/config'
     | '/api/admin/push/subscriptions'
-    | '/api/admin/stock/sync-burgers'
     | '/api/store/auth/forgot-password'
     | '/api/store/auth/google'
     | '/api/store/auth/login'
@@ -465,9 +475,11 @@ export interface FileRouteTypes {
     | '/admin/productos'
     | '/admin/stock'
     | '/admin/venta-local'
+    | '/stock/$slug'
     | '/api/admin/categories'
     | '/api/admin/config'
     | '/api/admin/day'
+    | '/api/admin/inventory'
     | '/api/admin/local-sale'
     | '/api/store/menu'
     | '/api/store/orders'
@@ -475,7 +487,6 @@ export interface FileRouteTypes {
     | '/api/admin/orders/status'
     | '/api/admin/push/config'
     | '/api/admin/push/subscriptions'
-    | '/api/admin/stock/sync-burgers'
     | '/api/store/auth/forgot-password'
     | '/api/store/auth/google'
     | '/api/store/auth/login'
@@ -499,9 +510,11 @@ export interface RootRouteChildren {
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SobreRoute: typeof SobreRoute
+  StockSlugRoute: typeof StockSlugRoute
   ApiAdminCategoriesRoute: typeof ApiAdminCategoriesRoute
   ApiAdminConfigRoute: typeof ApiAdminConfigRoute
   ApiAdminDayRoute: typeof ApiAdminDayRoute
+  ApiAdminInventoryRoute: typeof ApiAdminInventoryRoute
   ApiAdminLocalSaleRoute: typeof ApiAdminLocalSaleRoute
   ApiStoreMenuRoute: typeof ApiStoreMenuRoute
   ApiStoreOrdersRoute: typeof ApiStoreOrdersRoute
@@ -509,7 +522,6 @@ export interface RootRouteChildren {
   ApiAdminOrdersStatusRoute: typeof ApiAdminOrdersStatusRoute
   ApiAdminPushConfigRoute: typeof ApiAdminPushConfigRoute
   ApiAdminPushSubscriptionsRoute: typeof ApiAdminPushSubscriptionsRoute
-  ApiAdminStockSyncBurgersRoute: typeof ApiAdminStockSyncBurgersRoute
   ApiStoreAuthForgotPasswordRoute: typeof ApiStoreAuthForgotPasswordRoute
   ApiStoreAuthGoogleRoute: typeof ApiStoreAuthGoogleRoute
   ApiStoreAuthLoginRoute: typeof ApiStoreAuthLoginRoute
@@ -600,6 +612,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/stock/$slug': {
+      id: '/stock/$slug'
+      path: '/stock/$slug'
+      fullPath: '/stock/$slug'
+      preLoaderRoute: typeof StockSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/venta-local': {
       id: '/admin/venta-local'
       path: '/venta-local'
@@ -668,6 +687,13 @@ declare module '@tanstack/react-router' {
       path: '/api/admin/local-sale'
       fullPath: '/api/admin/local-sale'
       preLoaderRoute: typeof ApiAdminLocalSaleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/inventory': {
+      id: '/api/admin/inventory'
+      path: '/api/admin/inventory'
+      fullPath: '/api/admin/inventory'
+      preLoaderRoute: typeof ApiAdminInventoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/admin/day': {
@@ -754,13 +780,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiStoreAuthForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/admin/stock/sync-burgers': {
-      id: '/api/admin/stock/sync-burgers'
-      path: '/api/admin/stock/sync-burgers'
-      fullPath: '/api/admin/stock/sync-burgers'
-      preLoaderRoute: typeof ApiAdminStockSyncBurgersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/admin/push/subscriptions': {
       id: '/api/admin/push/subscriptions'
       path: '/api/admin/push/subscriptions'
@@ -826,9 +845,11 @@ const rootRouteChildren: RootRouteChildren = {
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SobreRoute: SobreRoute,
+  StockSlugRoute: StockSlugRoute,
   ApiAdminCategoriesRoute: ApiAdminCategoriesRoute,
   ApiAdminConfigRoute: ApiAdminConfigRoute,
   ApiAdminDayRoute: ApiAdminDayRoute,
+  ApiAdminInventoryRoute: ApiAdminInventoryRoute,
   ApiAdminLocalSaleRoute: ApiAdminLocalSaleRoute,
   ApiStoreMenuRoute: ApiStoreMenuRoute,
   ApiStoreOrdersRoute: ApiStoreOrdersRoute,
@@ -836,7 +857,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAdminOrdersStatusRoute: ApiAdminOrdersStatusRoute,
   ApiAdminPushConfigRoute: ApiAdminPushConfigRoute,
   ApiAdminPushSubscriptionsRoute: ApiAdminPushSubscriptionsRoute,
-  ApiAdminStockSyncBurgersRoute: ApiAdminStockSyncBurgersRoute,
   ApiStoreAuthForgotPasswordRoute: ApiStoreAuthForgotPasswordRoute,
   ApiStoreAuthGoogleRoute: ApiStoreAuthGoogleRoute,
   ApiStoreAuthLoginRoute: ApiStoreAuthLoginRoute,

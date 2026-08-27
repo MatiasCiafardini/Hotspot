@@ -1,12 +1,12 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   BarChart3,
   Boxes,
   ClipboardList,
   History,
   LogOut,
-  Menu,
+  MoreHorizontal,
   Package,
   ShoppingBag,
   Settings,
@@ -29,6 +29,7 @@ const NAV = [
 ] as const;
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
+  const isStaging = import.meta.env.VITE_APP_ENV === "staging";
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
   const [checked, setChecked] = useState(false);
@@ -99,18 +100,18 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-50">
-      <div className="fixed inset-x-0 top-0 z-30 h-16 border-b border-white/10 bg-black/95 shadow-[0_16px_40px_-32px_rgba(251,146,60,0.7)] lg:hidden" />
+      {isStaging && (
+        <div className="fixed inset-x-0 top-0 z-[100] bg-yellow-300 px-3 py-1 text-center text-xs font-black uppercase tracking-widest text-black">
+          Entorno local de pruebas · No es produccion
+        </div>
+      )}
+      <MobileBottomNav pathname={pathname} onMore={() => setDrawerOpen(true)} />
 
-      <button
-        type="button"
-        onClick={() => setDrawerOpen(true)}
-        className="fixed left-4 top-4 z-40 inline-flex h-11 w-11 items-center justify-center rounded-md border border-orange-400/50 bg-zinc-950 text-orange-300 shadow-lg lg:hidden"
-        aria-label="Abrir menu admin"
+      <div
+        className={cn("fixed bottom-0 left-0 z-40 hidden lg:block", isStaging ? "top-6" : "top-0")}
       >
-        <Menu className="h-5 w-5" />
-      </button>
-
-      <div className="fixed inset-y-0 left-0 z-40 hidden lg:block">{sidebar}</div>
+        {sidebar}
+      </div>
       <AnimatePresence>
         {drawerOpen && (
           <>
@@ -128,7 +129,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", stiffness: 320, damping: 32 }}
-              className="fixed inset-y-0 left-0 z-50 lg:hidden"
+              className={cn("fixed bottom-0 left-0 z-50 lg:hidden", isStaging ? "top-6" : "top-0")}
             >
               {sidebar}
             </motion.div>
@@ -138,13 +139,76 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
       <main
         className={cn(
-          "min-h-screen px-4 pb-10 pt-20 transition-[padding] md:px-6 lg:pt-8",
+          "min-h-screen min-w-0 overflow-x-hidden px-4 pb-28 transition-[padding] md:px-6 lg:pb-10 lg:pt-8",
+          isStaging ? "pt-10" : "pt-5",
           collapsed ? "lg:pl-28" : "lg:pl-72",
         )}
       >
         {children}
       </main>
     </div>
+  );
+}
+
+function MobileBottomNav({ pathname, onMore }: { pathname: string; onMore: () => void }) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const activeItem = scrollerRef.current?.querySelector<HTMLElement>("[aria-current='page']");
+    activeItem?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  }, [pathname]);
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const handleWheel = (event: WheelEvent) => {
+      if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+      scroller.scrollLeft += event.deltaY;
+      event.preventDefault();
+    };
+    scroller.addEventListener("wheel", handleWheel, { passive: false });
+    return () => scroller.removeEventListener("wheel", handleWheel);
+  }, []);
+
+  return (
+    <nav
+      aria-label="Navegación principal del administrador"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-white/15 bg-zinc-950/95 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 shadow-[0_-16px_40px_-24px_rgba(0,0,0,0.95)] backdrop-blur-xl lg:hidden"
+    >
+      <div
+        ref={scrollerRef}
+        className="flex snap-x snap-mandatory gap-1 overflow-x-auto px-2 [scrollbar-width:none] [touch-action:pan-x] [&::-webkit-scrollbar]:hidden"
+      >
+        {NAV.map(({ to, label, Icon }) => {
+          const active = pathname === to;
+          return (
+            <Link
+              key={to}
+              to={to}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "flex min-h-14 min-w-[76px] snap-start flex-col items-center justify-center gap-1 rounded-xl border px-2 py-1.5 text-[11px] font-semibold transition-colors",
+                active
+                  ? "border-orange-400 bg-orange-500 text-black"
+                  : "border-transparent text-zinc-400 hover:bg-white/5 hover:text-white",
+              )}
+            >
+              <Icon className="h-5 w-5" />
+              <span className="whitespace-nowrap">{label}</span>
+            </Link>
+          );
+        })}
+        <button
+          type="button"
+          onClick={onMore}
+          className="flex min-h-14 min-w-[76px] snap-start flex-col items-center justify-center gap-1 rounded-xl border border-transparent px-2 py-1.5 text-[11px] font-semibold text-zinc-400 hover:bg-white/5 hover:text-white"
+          aria-label="Abrir más opciones"
+        >
+          <MoreHorizontal className="h-5 w-5" />
+          <span>Más</span>
+        </button>
+      </div>
+    </nav>
   );
 }
 
@@ -164,7 +228,7 @@ function AdminSidebar({
   return (
     <aside
       className={cn(
-        "flex h-screen flex-col border-r border-orange-400/30 bg-black/95 text-zinc-100 shadow-[12px_0_40px_-30px_rgba(251,146,60,0.8)] transition-[width]",
+        "flex h-full flex-col border-r border-orange-400/30 bg-black/95 text-zinc-100 shadow-[12px_0_40px_-30px_rgba(251,146,60,0.8)] transition-[width]",
         collapsed ? "w-20" : "w-64",
       )}
     >

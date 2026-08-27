@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { createSupabaseAdminClient, supabaseAdmin } from "@/integrations/supabase/client.server";
 import { json } from "@/lib/server/customer-auth";
 
 export function getBearerToken(request: Request) {
@@ -30,4 +30,30 @@ export async function requireAdminOwner(request: Request) {
   }
 
   return { user };
+}
+
+export async function requireStockUser(request: Request) {
+  const token = getBearerToken(request);
+  if (!token) return { response: json({ error: "No autenticado." }, { status: 401 }) };
+  const { data, error } = await supabaseAdmin.auth.getUser(token);
+  if (error || !data.user)
+    return { response: json({ error: "Sesion invalida." }, { status: 401 }) };
+  const roleClient = createSupabaseAdminClient();
+  const [{ data: isOwner, error: ownerError }, { data: isOperator, error: operatorError }] =
+    await Promise.all([
+      (roleClient as any).rpc("has_role", { _user_id: data.user.id, _role: "owner" }),
+      (roleClient as any).rpc("has_role", { _user_id: data.user.id, _role: "operator" }),
+    ]);
+  const role = isOwner ? "owner" : isOperator ? "operator" : null;
+  if (ownerError || operatorError || !role) {
+    console.error("No se pudo resolver el rol de stock.", {
+      userId: data.user.id,
+      isOwner,
+      isOperator,
+      ownerError: ownerError?.message,
+      operatorError: operatorError?.message,
+    });
+    return { response: json({ error: "No tenes permisos de stock." }, { status: 403 }) };
+  }
+  return { user: data.user, role } as const;
 }

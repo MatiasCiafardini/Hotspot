@@ -130,13 +130,13 @@ function MenuPage() {
         </p>
       </div>
 
-      <div className="-mx-4 mb-8 overflow-x-auto border-y border-ink bg-background px-4 py-3 shadow-[0_16px_26px_-24px_var(--ink)] md:-mx-6 md:px-6">
+      <div className="-mx-4 mb-8 overflow-x-auto border-y border-ink bg-background px-4 py-3 shadow-[0_16px_26px_-24px_var(--ink)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:-mx-6 md:px-6">
         <div className="flex w-max min-w-full gap-2 md:flex-wrap">
           {visibleCategoryTabs.map((c) => (
             <button
               key={c.key}
               onClick={() => setActive(c.key)}
-              className={`shrink-0 border border-ink px-4 py-2 font-display uppercase text-sm shadow-[0_10px_20px_-18px_var(--ink)] transition-all hover:-translate-y-0.5 hover:border-primary ${
+              className={`min-h-11 shrink-0 border border-ink px-4 py-2 font-display uppercase text-sm shadow-[0_10px_20px_-18px_var(--ink)] transition-all hover:-translate-y-0.5 hover:border-primary ${
                 active === c.key
                   ? "bg-primary text-primary-foreground border-primary"
                   : "bg-background text-ink"

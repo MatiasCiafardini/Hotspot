@@ -19,7 +19,9 @@ export function AdminPageHeader({
         <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-orange-300">
           {eyebrow}
         </p>
-        <h1 className="font-display text-4xl text-white md:text-6xl">{title}</h1>
+        <h1 className="font-display break-words text-3xl leading-none text-white sm:text-4xl md:text-6xl">
+          {title}
+        </h1>
         {description && <p className="mt-2 max-w-2xl text-sm text-zinc-400">{description}</p>}
       </div>
       {action}
@@ -65,7 +67,7 @@ export function AdminButton({
   return (
     <button
       className={cn(
-        "inline-flex min-h-10 items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+        "inline-flex min-h-11 items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
         variant === "primary" && "border-orange-400 bg-orange-500 text-black hover:bg-orange-400",
         variant === "ghost" &&
           "border-white/15 bg-zinc-900 text-zinc-100 hover:border-orange-400/50 hover:text-orange-200",
@@ -84,7 +86,7 @@ export function AdminInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
     <input
       {...props}
       className={cn(
-        "min-h-10 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-orange-400",
+        "min-h-11 w-full min-w-0 rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-orange-400",
         props.className,
       )}
     />
@@ -108,7 +110,7 @@ export function AdminSelect(props: React.SelectHTMLAttributes<HTMLSelectElement>
     <select
       {...props}
       className={cn(
-        "min-h-10 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-orange-400",
+        "min-h-11 w-full min-w-0 rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-orange-400",
         props.className,
       )}
     />
