@@ -1,3 +1,4 @@
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -98,10 +99,8 @@ function orderItemCount(order: AdminOrder) {
 
 function orderSummary(order: AdminOrder) {
   return (
-    order.order_items
-      ?.slice(0, 3)
-      .map((item) => `${item.quantity} x ${item.product_name}`)
-      .join(" - ") || "Sin items"
+    order.order_items?.map((item) => `${item.quantity} x ${item.product_name}`).join(" - ") ||
+    "Sin items"
   );
 }
 
@@ -157,10 +156,13 @@ function OrdersPage() {
   const hasLoadedRef = useRef(false);
 
   const load = useCallback(async (options?: { notifyNew?: boolean; silentErrors?: boolean }) => {
-    const { data, error } = await (supabase as any)
-      .from("orders")
-      .select("*, order_items(*)")
-      .order("created_at", { ascending: true });
+    const { data, error } = await fetchAllRows(() =>
+      (supabase as any)
+        .from("orders")
+        .select("*, order_items(*)", { count: "exact" })
+        .order("created_at", { ascending: true })
+        .order("id"),
+    );
     if (error) {
       if (!options?.silentErrors) toast.error("No se pudieron cargar los pedidos.");
       setLoading(false);
@@ -203,18 +205,20 @@ function OrdersPage() {
         if (data) setSettings({ ...DEFAULT_SETTINGS, ...data });
       });
 
-    (supabase as any)
-      .from("products")
-      .select("*")
-      .eq("available", true)
-      .order("sort_order")
-      .then(({ data, error }: { data: Product[] | null; error: unknown }) => {
-        if (error) {
-          toast.error("No se pudieron cargar los productos para editar pedidos.");
-          return;
-        }
-        setProducts(data ?? []);
-      });
+    fetchAllRows(() =>
+      (supabase as any)
+        .from("products")
+        .select("*", { count: "exact" })
+        .eq("available", true)
+        .order("sort_order")
+        .order("id"),
+    ).then(({ data, error }: { data: Product[] | null; error: unknown }) => {
+      if (error) {
+        toast.error("No se pudieron cargar los productos para editar pedidos.");
+        return;
+      }
+      setProducts(data ?? []);
+    });
 
     const channel = supabase
       .channel("admin-orders")
@@ -1207,9 +1211,9 @@ function ProductSearchSelect({
   const [query, setQuery] = useState(selected?.name ?? "");
   const [open, setOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const filtered = products
-    .filter((product) => product.name.toLowerCase().includes(query.trim().toLowerCase()))
-    .slice(0, 12);
+  const filtered = products.filter((product) =>
+    product.name.toLowerCase().includes(query.trim().toLowerCase()),
+  );
 
   useEffect(() => {
     setQuery(selected?.name ?? "");

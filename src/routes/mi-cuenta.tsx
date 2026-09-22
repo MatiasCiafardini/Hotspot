@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Clock, PackageCheck, PenLine, Phone, User } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { SmashButton } from "@/components/SmashButton";
 import { Sticker } from "@/components/Sticker";
 import { TransitionLink } from "@/components/RouteTransitionProvider";
@@ -62,7 +62,7 @@ function AccountPage() {
       .finally(() => setOrdersLoading(false));
   }, [customer]);
 
-  const recentOrders = useMemo(() => orders.slice(0, 8), [orders]);
+  const recentOrders = orders;
 
   const handleLogout = async () => {
     await logout();

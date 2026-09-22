@@ -1,3 +1,4 @@
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { createFileRoute } from "@tanstack/react-router";
 import { DEFAULT_SETTINGS, deriveCashSummaryStats, type AdminOrder } from "@/lib/admin";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
@@ -23,12 +24,14 @@ export const Route = createFileRoute("/api/admin/day")({
         const admin = await requireAdminOwner(request);
         if ("response" in admin) return admin.response;
 
-        const { data, error } = await (supabaseAdmin as any)
-          .from("cash_closures")
-          .select("*")
-          .eq("store_id", DEFAULT_STORE_ID)
-          .order("closed_at", { ascending: false })
-          .limit(100);
+        const { data, error } = await fetchAllRows(() =>
+          (supabaseAdmin as any)
+            .from("cash_closures")
+            .select("*", { count: "exact" })
+            .eq("store_id", DEFAULT_STORE_ID)
+            .order("closed_at", { ascending: false })
+            .order("id"),
+        );
 
         if (isMissingCashClosuresTable(error)) {
           return json({
@@ -76,13 +79,16 @@ export const Route = createFileRoute("/api/admin/day")({
 
           const settings = { ...DEFAULT_SETTINGS, ...settingsData };
           const closedAt = new Date().toISOString();
-          const { data: ordersData, error: ordersError } = await (supabaseAdmin as any)
-            .from("orders")
-            .select("*, order_items(*)")
-            .eq("store_id", DEFAULT_STORE_ID)
-            .gte("created_at", settings.current_day_started_at)
-            .lte("created_at", closedAt)
-            .order("created_at", { ascending: true });
+          const { data: ordersData, error: ordersError } = await fetchAllRows(() =>
+            (supabaseAdmin as any)
+              .from("orders")
+              .select("*, order_items(*)", { count: "exact" })
+              .eq("store_id", DEFAULT_STORE_ID)
+              .gte("created_at", settings.current_day_started_at)
+              .lte("created_at", closedAt)
+              .order("created_at", { ascending: true })
+              .order("id"),
+          );
 
           if (ordersError) return json({ error: ordersError.message }, { status: 500 });
 

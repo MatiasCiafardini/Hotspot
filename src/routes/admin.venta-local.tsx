@@ -1,3 +1,4 @@
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -106,27 +107,32 @@ function LocalSalePage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    (supabase as any)
-      .from("products")
-      .select("*")
-      .eq("available", true)
-      .order("sort_order")
-      .then(({ data, error }: { data: Product[] | null; error: unknown }) => {
-        if (error) {
-          toast.error("No se pudo cargar el menu.");
-          return;
-        }
-        setProducts(data ?? []);
-      });
+    fetchAllRows(() =>
+      (supabase as any)
+        .from("products")
+        .select("*", { count: "exact" })
+        .eq("available", true)
+        .order("sort_order")
+        .order("id"),
+    ).then(({ data, error }: { data: Product[] | null; error: unknown }) => {
+      if (error) {
+        toast.error("No se pudo cargar el menu.");
+        return;
+      }
+      setProducts(data ?? []);
+    });
 
-    (supabase as any)
-      .from("product_categories")
-      .select("*")
-      .eq("active", true)
-      .order("sort_order")
-      .then(({ data }: { data: ProductCategory[] | null }) => {
-        if (data?.length) setCategories(data);
-      });
+    fetchAllRows(() =>
+      (supabase as any)
+        .from("product_categories")
+        .select("*", { count: "exact" })
+        .eq("active", true)
+        .order("sort_order")
+        .order("id"),
+    ).then(({ data, error }) => {
+      if (error) return toast.error("No se pudieron cargar todas las categorias.");
+      if (data?.length) setCategories(data);
+    });
 
     (supabase as any)
       .from("store_settings")

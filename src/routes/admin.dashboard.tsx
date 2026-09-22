@@ -1,5 +1,6 @@
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -47,18 +48,42 @@ function Dashboard() {
   const [dayBusy, setDayBusy] = useState(false);
   const [dayDialog, setDayDialog] = useState<"start" | "close" | null>(null);
   const [cashSummary, setCashSummary] = useState<CashSummaryDialogData | null>(null);
+  const loadVersion = useRef(0);
+  const [loadError, setLoadError] = useState(false);
+  const [showAllOrders, setShowAllOrders] = useState(false);
 
   const load = useCallback(async () => {
-    const [{ data: ordersData }, { data: productsData }, { data: settingsData }] =
-      await Promise.all([
+    const version = ++loadVersion.current;
+    const [
+      { data: ordersData, error: ordersError },
+      { data: productsData, error: productsError },
+      { data: settingsData, error: settingsError },
+    ] = await Promise.all([
+      fetchAllRows(() =>
         (supabase as any)
           .from("orders")
-          .select("*, order_items(*)")
+          .select("id, created_at, status, total, customer_name, customer_phone", {
+            count: "exact",
+          })
           .order("created_at", { ascending: false })
-          .limit(20),
-        (supabase as any).from("products").select("*").order("sort_order", { ascending: true }),
-        (supabase as any).from("store_settings").select("*").limit(1).maybeSingle(),
-      ]);
+          .order("id"),
+      ),
+      fetchAllRows(() =>
+        (supabase as any)
+          .from("products")
+          .select("*", { count: "exact" })
+          .order("sort_order", { ascending: true })
+          .order("id"),
+      ),
+      (supabase as any).from("store_settings").select("*").limit(1).maybeSingle(),
+    ]);
+    if (version !== loadVersion.current) return;
+    if (ordersError || productsError || settingsError) {
+      setLoadError(true);
+      setLoading(false);
+      return;
+    }
+    setLoadError(false);
     setOrders((ordersData as AdminOrder[]) ?? []);
     setProducts((productsData as Product[]) ?? []);
     if (settingsData) setSettings({ ...DEFAULT_SETTINGS, ...(settingsData as StoreSettings) });
@@ -72,15 +97,20 @@ function Dashboard() {
       .channel("admin-dashboard-orders")
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, load)
       .on("postgres_changes", { event: "*", schema: "public", table: "order_items" }, load)
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") load();
+      });
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") load();
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    const refreshTimer = window.setInterval(handleVisibilityChange, 30000);
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.clearInterval(refreshTimer);
+      loadVersion.current += 1;
       supabase.removeChannel(channel);
     };
   }, [load]);
@@ -233,6 +263,17 @@ function Dashboard() {
         </p>
       </div>
 
+      {loadError && (
+        <p
+          role="alert"
+          className="mb-4 rounded-lg border border-red-400/40 bg-red-500/10 p-4 text-red-100"
+        >
+          No se pudo actualizar el resumen. Los valores pueden estar desactualizados.
+          <button className="ml-2 underline" onClick={load}>
+            Reintentar
+          </button>
+        </p>
+      )}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <StatCard title="Pedidos pendientes" value={stats.pending} Icon={Clock} tone="orange" />
         <StatCard title="Confirmados hoy" value={stats.confirmedToday} Icon={CheckCircle2} />
@@ -250,11 +291,11 @@ function Dashboard() {
           <div className="flex items-center justify-between border-b border-white/10 p-4">
             <h2 className="font-display text-2xl">Ultimos pedidos</h2>
             <span className="text-xs uppercase text-zinc-500">
-              {loading ? "Cargando" : `${orders.length} recientes`}
+              {loading ? "Cargando" : `${orders.length} pedidos`}
             </span>
           </div>
           <div className="divide-y divide-white/10">
-            {orders.slice(0, 6).map((order) => (
+            {(showAllOrders ? orders : orders.slice(0, 6)).map((order) => (
               <Link
                 key={order.id}
                 to="/admin/pedidos"
@@ -280,6 +321,14 @@ function Dashboard() {
               </div>
             )}
           </div>
+          {orders.length > 6 && (
+            <button
+              className="p-4 text-sm text-orange-300"
+              onClick={() => setShowAllOrders(!showAllOrders)}
+            >
+              {showAllOrders ? "Mostrar recientes" : `Ver todos (${orders.length})`}
+            </button>
+          )}
         </div>
 
         <div className="rounded-lg border border-white/10 bg-zinc-900/70 p-4">
@@ -291,7 +340,6 @@ function Dashboard() {
                   Number(item.stock_quantity ?? 0) <= Number(item.low_stock_threshold ?? 0) ||
                   !item.available,
               )
-              .slice(0, 8)
               .map((item) => (
                 <div
                   key={item.id}
@@ -332,7 +380,7 @@ function Dashboard() {
         mode="confirm-close"
         title="Cerrar dia"
         busy={dayBusy}
-        confirmDisabled={unresolvedDayOrders.length > 0}
+        confirmDisabled={loading || loadError || unresolvedDayOrders.length > 0}
         warning={
           unresolvedDayOrders.length > 0 ? (
             <>

@@ -1,3 +1,4 @@
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { DEFAULT_SETTINGS, extraIngredientPrice, formatMoney } from "@/lib/admin";
@@ -92,12 +93,15 @@ export const Route = createFileRoute("/api/admin/local-sale")({
             .eq("store_id", DEFAULT_STORE_ID)
             .limit(1)
             .maybeSingle(),
-          (supabaseAdmin as any)
-            .from("products")
-            .select("*")
-            .eq("store_id", DEFAULT_STORE_ID)
-            .eq("available", true)
-            .in("id", productIds),
+          fetchAllRows(() =>
+            (supabaseAdmin as any)
+              .from("products")
+              .select("*", { count: "exact" })
+              .eq("store_id", DEFAULT_STORE_ID)
+              .eq("available", true)
+              .in("id", productIds)
+              .order("id"),
+          ),
         ]);
 
         if (settingsError) return json({ error: settingsError.message }, { status: 500 });
@@ -118,11 +122,14 @@ export const Route = createFileRoute("/api/admin/local-sale")({
         const categoryKeys = [
           ...new Set(products.map((product) => product.category).filter(Boolean)),
         ];
-        const { data: categoriesData, error: categoriesError } = await (supabaseAdmin as any)
-          .from("product_categories")
-          .select("*")
-          .eq("store_id", DEFAULT_STORE_ID)
-          .in("key", categoryKeys);
+        const { data: categoriesData, error: categoriesError } = await fetchAllRows(() =>
+          (supabaseAdmin as any)
+            .from("product_categories")
+            .select("*", { count: "exact" })
+            .eq("store_id", DEFAULT_STORE_ID)
+            .in("key", categoryKeys)
+            .order("id"),
+        );
 
         if (categoriesError) return json({ error: categoriesError.message }, { status: 500 });
 

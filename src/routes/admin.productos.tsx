@@ -1,3 +1,4 @@
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Edit3, ImageUp, LoaderCircle, Plus, Power, Save, Trash2, X } from "lucide-react";
@@ -115,20 +116,28 @@ function ProductsPage() {
   const newBlank = (category = categories[0]?.key || "burgers") => ({ ...blank, category });
 
   const load = () => {
-    (supabase as any)
-      .from("products")
-      .select("*")
-      .order("sort_order")
-      .then(({ data }: { data: Product[] | null }) => setProducts(data ?? []));
+    fetchAllRows(() =>
+      (supabase as any)
+        .from("products")
+        .select("*", { count: "exact" })
+        .order("sort_order")
+        .order("id"),
+    ).then(({ data, error }) => {
+      if (error) return toast.error("No se pudieron cargar todos los productos.");
+      setProducts(data ?? []);
+    });
 
-    (supabase as any)
-      .from("product_categories")
-      .select("*")
-      .eq("active", true)
-      .order("sort_order")
-      .then(({ data }: { data: ProductCategory[] | null }) => {
-        if (data?.length) setCategories(data);
-      });
+    fetchAllRows(() =>
+      (supabase as any)
+        .from("product_categories")
+        .select("*", { count: "exact" })
+        .eq("active", true)
+        .order("sort_order")
+        .order("id"),
+    ).then(({ data, error }) => {
+      if (error) return toast.error("No se pudieron cargar todas las categorias.");
+      if (data?.length) setCategories(data);
+    });
   };
 
   useEffect(() => {

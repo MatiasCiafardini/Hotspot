@@ -1,9 +1,26 @@
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { requireStockUser } from "@/lib/server/admin-auth";
 import { json, methodNotAllowed } from "@/lib/server/customer-auth";
 
 const STORE_ID = 1;
+
+async function requireAllRows(query: Parameters<typeof fetchAllRows>[0]) {
+  const result = await fetchAllRows<any>(query);
+  if (result.error) throw result.error;
+  return result;
+}
+
+async function listAllUsers() {
+  const users = [];
+  for (let page = 1; ; page += 1) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
+    if (error) throw error;
+    users.push(...data.users);
+    if (!data.nextPage) return users;
+  }
+}
 
 function slugify(value: string) {
   return value
@@ -24,35 +41,51 @@ async function body(request: Request) {
 }
 
 async function listPayload(userId: string, role: string, slug?: string | null) {
-  let listsQuery = (supabaseAdmin as any)
-    .from("stock_lists")
-    .select("*")
-    .eq("store_id", STORE_ID)
-    .order("name");
-  if (slug) listsQuery = listsQuery.eq("slug", slug).eq("active", true);
-  const { data: lists, error } = await listsQuery;
-  if (error) throw error;
+  const { data: lists } = await requireAllRows(() => {
+    let listsQuery = (supabaseAdmin as any)
+      .from("stock_lists")
+      .select("*", { count: "exact" })
+      .eq("store_id", STORE_ID)
+      .order("name")
+      .order("id");
+    if (slug) listsQuery = listsQuery.eq("slug", slug).eq("active", true);
+    return listsQuery;
+  });
   let allowed = lists ?? [];
   if (role !== "owner") {
-    const { data: assignments } = await (supabaseAdmin as any)
-      .from("stock_list_assignments")
-      .select("list_id")
-      .eq("user_id", userId);
+    const { data: assignments } = await requireAllRows(() =>
+      (supabaseAdmin as any)
+        .from("stock_list_assignments")
+        .select("list_id", { count: "exact" })
+        .eq("user_id", userId)
+        .order("list_id")
+        .order("user_id"),
+    );
     const ids = new Set((assignments ?? []).map((x: any) => x.list_id));
     allowed = allowed.filter((list: any) => ids.has(list.id));
   }
   if (slug && allowed.length === 0) throw new Error("LIST_NOT_FOUND");
   const listIds = allowed.map((list: any) => list.id);
   const { data: links } = listIds.length
-    ? await (supabaseAdmin as any)
-        .from("stock_list_items")
-        .select("list_id,stock_item_id,sort_order,step")
-        .in("list_id", listIds)
-        .order("sort_order")
+    ? await requireAllRows(() =>
+        (supabaseAdmin as any)
+          .from("stock_list_items")
+          .select("list_id,stock_item_id,sort_order,step", { count: "exact" })
+          .in("list_id", listIds)
+          .order("sort_order")
+          .order("list_id")
+          .order("stock_item_id"),
+      )
     : { data: [] };
   const itemIds = [...new Set((links ?? []).map((link: any) => link.stock_item_id))];
   const { data: items } = itemIds.length
-    ? await (supabaseAdmin as any).from("stock_items").select("*").in("id", itemIds)
+    ? await requireAllRows(() =>
+        (supabaseAdmin as any)
+          .from("stock_items")
+          .select("*", { count: "exact" })
+          .in("id", itemIds)
+          .order("id"),
+      )
     : { data: [] };
   const itemMap = new Map((items ?? []).map((item: any) => [item.id, item]));
   return {
@@ -89,27 +122,60 @@ async function adminPayload(userId: string, role: string) {
     { data: orders },
     users,
   ] = await Promise.all([
-    (supabaseAdmin as any).from("stock_items").select("*").eq("store_id", STORE_ID).order("name"),
-    (supabaseAdmin as any).from("suppliers").select("*").eq("store_id", STORE_ID).order("name"),
-    (supabaseAdmin as any).from("stock_item_suppliers").select("*"),
-    (supabaseAdmin as any)
-      .from("stock_counts")
-      .select("*,stock_lists(name),stock_count_items(*)")
-      .eq("store_id", STORE_ID)
-      .order("created_at", { ascending: false })
-      .limit(100),
-    (supabaseAdmin as any)
-      .from("purchase_orders")
-      .select("*,suppliers(name,phone),purchase_order_items(*)")
-      .eq("store_id", STORE_ID)
-      .order("created_at", { ascending: false })
-      .limit(100),
-    supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 200 }),
+    requireAllRows(() =>
+      (supabaseAdmin as any)
+        .from("stock_items")
+        .select("*", { count: "exact" })
+        .eq("store_id", STORE_ID)
+        .order("name")
+        .order("id"),
+    ),
+    requireAllRows(() =>
+      (supabaseAdmin as any)
+        .from("suppliers")
+        .select("*", { count: "exact" })
+        .eq("store_id", STORE_ID)
+        .order("name")
+        .order("id"),
+    ),
+    requireAllRows(() =>
+      (supabaseAdmin as any)
+        .from("stock_item_suppliers")
+        .select("*", { count: "exact" })
+        .order("stock_item_id")
+        .order("supplier_id"),
+    ),
+    requireAllRows(() =>
+      (supabaseAdmin as any)
+        .from("stock_counts")
+        .select("*,stock_lists(name),stock_count_items(*)", { count: "exact" })
+        .eq("store_id", STORE_ID)
+        .order("created_at", { ascending: false })
+        .order("id"),
+    ),
+    requireAllRows(() =>
+      (supabaseAdmin as any)
+        .from("purchase_orders")
+        .select("*,suppliers(name,phone),purchase_order_items(*)", { count: "exact" })
+        .eq("store_id", STORE_ID)
+        .order("created_at", { ascending: false })
+        .order("id"),
+    ),
+    listAllUsers(),
   ]);
-  const { data: roles } = await (supabaseAdmin as any).from("user_roles").select("user_id,role");
-  const { data: assignments } = await (supabaseAdmin as any)
-    .from("stock_list_assignments")
-    .select("*");
+  const { data: roles } = await requireAllRows(() =>
+    (supabaseAdmin as any)
+      .from("user_roles")
+      .select("user_id,role", { count: "exact" })
+      .order("id"),
+  );
+  const { data: assignments } = await requireAllRows(() =>
+    (supabaseAdmin as any)
+      .from("stock_list_assignments")
+      .select("*", { count: "exact" })
+      .order("list_id")
+      .order("user_id"),
+  );
   return {
     ...base,
     lists: base.lists.map((list: any) => ({
@@ -123,7 +189,7 @@ async function adminPayload(userId: string, role: string) {
     counts: counts ?? [],
     orders: orders ?? [],
     assignments: assignments ?? [],
-    users: users.data.users.map((u) => ({
+    users: users.map((u) => ({
       id: u.id,
       email: u.email,
       name: String(u.user_metadata?.name ?? u.email ?? "Operador"),

@@ -1,3 +1,4 @@
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, MapPin, Package, Phone, Printer, ReceiptText, Search } from "lucide-react";
@@ -48,11 +49,16 @@ function HistoryPage() {
   const [filters, setFilters] = useState({ date: "", status: "all", payment: "all", search: "" });
 
   useEffect(() => {
-    (supabase as any)
-      .from("orders")
-      .select("*, order_items(*)")
-      .order("created_at", { ascending: false })
-      .then(({ data }: { data: AdminOrder[] | null }) => setOrders(data ?? []));
+    fetchAllRows(() =>
+      (supabase as any)
+        .from("orders")
+        .select("*, order_items(*)", { count: "exact" })
+        .order("created_at", { ascending: false })
+        .order("id"),
+    ).then(({ data, error }) => {
+      if (error) return toast.error("No se pudo cargar el historial completo.");
+      setOrders(data ?? []);
+    });
 
     (supabase as any)
       .from("store_settings")

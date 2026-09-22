@@ -1,3 +1,4 @@
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import webpush, { type PushSubscription } from "web-push";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { formatMoney, shortOrderId, type AdminOrder } from "@/lib/admin";
@@ -25,10 +26,13 @@ export async function sendNewOrderPush(order: AdminOrder, storeId: number) {
   const config = getVapidConfig();
   if (!config) return;
 
-  const { data, error } = await (supabaseAdmin as any)
-    .from("admin_push_subscriptions")
-    .select("id, endpoint, p256dh, auth")
-    .eq("store_id", storeId);
+  const { data, error } = await fetchAllRows(() =>
+    (supabaseAdmin as any)
+      .from("admin_push_subscriptions")
+      .select("id, endpoint, p256dh, auth", { count: "exact" })
+      .eq("store_id", storeId)
+      .order("id"),
+  );
   if (error || !data?.length) return;
 
   webpush.setVapidDetails(config.subject, config.publicKey, config.privateKey);

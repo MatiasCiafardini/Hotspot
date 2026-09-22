@@ -1,3 +1,4 @@
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { extraIngredientPrice } from "@/lib/admin";
@@ -87,11 +88,14 @@ export const Route = createFileRoute("/api/admin/orders/edit")({
             .eq("store_id", DEFAULT_STORE_ID)
             .eq("id", input.orderId)
             .maybeSingle(),
-          (supabaseAdmin as any)
-            .from("products")
-            .select("*")
-            .eq("store_id", DEFAULT_STORE_ID)
-            .in("id", productIds),
+          fetchAllRows(() =>
+            (supabaseAdmin as any)
+              .from("products")
+              .select("*", { count: "exact" })
+              .eq("store_id", DEFAULT_STORE_ID)
+              .in("id", productIds)
+              .order("id"),
+          ),
         ]);
 
         if (settingsError) return json({ error: settingsError.message }, { status: 500 });

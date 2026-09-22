@@ -1,3 +1,4 @@
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import bcrypt from "bcryptjs";
 import { createHash, randomBytes } from "node:crypto";
 import { z } from "zod";
@@ -294,13 +295,15 @@ export async function updateCustomerProfile(
 }
 
 export async function getCustomerOrders(customerId: string, storeId = DEFAULT_STORE_ID) {
-  const { data, error } = await (supabaseAdmin as any)
-    .from("orders")
-    .select("*, order_items(*)")
-    .eq("store_id", storeId)
-    .eq("customer_id", customerId)
-    .order("created_at", { ascending: false })
-    .limit(20);
+  const { data, error } = await fetchAllRows(() =>
+    (supabaseAdmin as any)
+      .from("orders")
+      .select("*, order_items(*)", { count: "exact" })
+      .eq("store_id", storeId)
+      .eq("customer_id", customerId)
+      .order("created_at", { ascending: false })
+      .order("id"),
+  );
 
   if (error) throw error;
   return data ?? [];
@@ -336,11 +339,16 @@ export async function createCustomerOrder(
     throw new Error("El carrito contiene un producto invalido. Volve a cargar el menu.");
   }
 
-  const { data: products, error: productsError } = await (supabaseAdmin as any)
-    .from("products")
-    .select("id, name, price, category, available, ingredients, extra_ingredient_prices")
-    .eq("store_id", customer.store_id)
-    .in("id", productIds);
+  const { data: products, error: productsError } = await fetchAllRows(() =>
+    (supabaseAdmin as any)
+      .from("products")
+      .select("id, name, price, category, available, ingredients, extra_ingredient_prices", {
+        count: "exact",
+      })
+      .eq("store_id", customer.store_id)
+      .in("id", productIds)
+      .order("id"),
+  );
   if (productsError) throw productsError;
   if ((products ?? []).length !== productIds.length) {
     throw new Error("Uno de los productos ya no existe. Volve a cargar el menu.");
@@ -349,11 +357,14 @@ export async function createCustomerOrder(
   const categoryKeys = [
     ...new Set((products ?? []).map((product: Product) => product.category).filter(Boolean)),
   ];
-  const { data: categories, error: categoriesError } = await (supabaseAdmin as any)
-    .from("product_categories")
-    .select("key, active, menu_shifts")
-    .eq("store_id", customer.store_id)
-    .in("key", categoryKeys);
+  const { data: categories, error: categoriesError } = await fetchAllRows(() =>
+    (supabaseAdmin as any)
+      .from("product_categories")
+      .select("key, active, menu_shifts", { count: "exact" })
+      .eq("store_id", customer.store_id)
+      .in("key", categoryKeys)
+      .order("id"),
+  );
   if (categoriesError) throw categoriesError;
 
   const productsById = new Map(

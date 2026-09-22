@@ -1,3 +1,4 @@
+import { fetchAllRows } from "@/lib/fetch-all-rows";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
@@ -24,12 +25,21 @@ export async function listAdminConfig() {
     { data: products, error: productsError },
   ] = await Promise.all([
     (supabaseAdmin as any).from("store_settings").select("*").limit(1).maybeSingle(),
-    (supabaseAdmin as any).from("product_categories").select("*").order("sort_order"),
-    (supabaseAdmin as any)
-      .from("products")
-      .select("id, name, category, image_url, available, sort_order")
-      .eq("category", "burgers")
-      .order("sort_order"),
+    fetchAllRows(() =>
+      (supabaseAdmin as any)
+        .from("product_categories")
+        .select("*", { count: "exact" })
+        .order("sort_order")
+        .order("id"),
+    ),
+    fetchAllRows(() =>
+      (supabaseAdmin as any)
+        .from("products")
+        .select("id, name, category, image_url, available, sort_order", { count: "exact" })
+        .eq("category", "burgers")
+        .order("sort_order")
+        .order("id"),
+    ),
   ]);
 
   if (settingsError) throw settingsError;
